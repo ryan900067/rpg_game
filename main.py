@@ -1,6 +1,6 @@
 #Imports the @abstractmethod used in the health abstract method
 import time as wait
-import methods.py as methods
+import methods
 import numpy as np
 from types import MappingProxyType as map #map makes sure thedictionary is immutable to prevent cheating
 import random
