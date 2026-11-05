@@ -232,9 +232,9 @@ class Monster:
             return new_char
     print("You venture through a vast and magical forest. The air is humid and the weather is cold but sunny. You can hear birds chirp and twigs snap on the leafy floor.")
     print("You come accross a fork in the forest trail. Pick wisely.")
-    input("Which path do you take (1,2)")
-    choose_path(path={1,2},path_amount=2)
-    skelly_path=int(random.choice(path))
+    input=input("Which path do you take (1,2)")
+    chosen_path=methods.choose_path(path={1,2},path_amount=2)
+    skelly_path=int(random.choice(chosen_path))
 
     if input.formatted()==skelly_path:
         skeleton=input("You come accross a pack of skeletons in a forest clearing. You observe them play in a small river; however, they see you and one of them stays to fight you. Do you fight or run?")
