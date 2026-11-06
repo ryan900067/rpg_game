@@ -9,7 +9,7 @@ possible_commands=("save character","check stats","exit","access attribute","cre
 rewards=dict({
     "Skeleton":random.randint(50,100)
 })
-shop_instance=shop(random.randint(200,300),random.choice(list(possible_shop_items)))
+shop_instance=methods.shop(random.randint(200,300),random.choice(list(possible_shop_items)))
 
 class InvalidInputError(Exception):
     raise ValueError("Invalid Input. Something went wrong.")
