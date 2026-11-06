@@ -4,32 +4,19 @@ import methods
 
 
 possible_commands = (
-    "save character",
-    "check stats",
-    "access attribute",
-    "create new character",
-    "exit",
+    "save character", "check stats", "access attribute", "create new character", "exit"
 )
 
 
 class InvalidInputError(ValueError):
-    """Raised when the player enters an unsupported command or choice."""
+    """Raised when the player enters an unsupported choice."""
 
 
 class VideoGame:
     """Player character and combat statistics."""
 
-    def __init__(
-        self,
-        health: int = 100,
-        strength: int = 10,
-        speed: int = 10,
-        level: int = 1,
-        name: str = "Player",
-        coins: int = 0,
-        attack_power: float = 10,
-        defense: float = 5,
-    ) -> None:
+    def __init__(self, health=100, strength=10, speed=10, level=1, name="Player",
+                 coins=0, attack_power=10, defense=5):
         self.health = max(1, min(100, int(health)))
         self.strength = int(strength)
         self.speed = int(speed)
@@ -51,12 +38,10 @@ class VideoGame:
         print(f"{self.name} hits {target.name} for {damage:g} damage.")
         return remaining_health
 
-    def __str__(self) -> str:
-        return (
-            f"Name: {self.name}\nHealth: {self.health}\nStrength: {self.strength}\n"
-            f"Speed: {self.speed}\nLevel: {self.level}\nCoins: {self.coins}\n"
-            f"Attack power: {self.attack_power:g}\nDefense: {self.defense:g}"
-        )
+    def __str__(self):
+        return (f"Name: {self.name}\nHealth: {self.health}\nStrength: {self.strength}\n"
+                f"Speed: {self.speed}\nLevel: {self.level}\nCoins: {self.coins}\n"
+                f"Attack power: {self.attack_power:g}\nDefense: {self.defense:g}")
 
 
 def create_character_instance() -> VideoGame:
@@ -67,35 +52,23 @@ def create_character_instance() -> VideoGame:
             level = int(input("Enter level (1–10): "))
             strength = int(input("Enter strength: "))
             speed = int(input("Enter speed: "))
-
             if not name:
                 raise ValueError("Name cannot be empty.")
             if not 1 <= level <= 10:
                 raise ValueError("Level must be between 1 and 10.")
             if strength < 0 or speed < 0:
                 raise ValueError("Strength and speed cannot be negative.")
-
-            return VideoGame(
-                health=100,
-                strength=strength,
-                speed=speed,
-                level=level,
-                name=name,
-                coins=0,
-                attack_power=10,
-                defense=10,
-            )
+            return VideoGame(name=name, level=level, strength=strength, speed=speed)
         except ValueError as error:
             print(f"Invalid character details: {error}")
-            retry = input("Try again? (y/n): ").strip().lower()
-            if retry != "y":
+            if methods.formatted(input("Try again? (y/n): ")) != "y":
                 raise SystemExit("Character creation cancelled.")
         finally:
             print("Character creation attempt finished.")
 
 
 def ask_yes_no(prompt: str) -> bool:
-    """Ask until the player enters y or n."""
+    """Prompt until the player enters y or n."""
     while True:
         answer = methods.formatted(input(prompt))
         if answer in ("y", "n"):
@@ -104,25 +77,22 @@ def ask_yes_no(prompt: str) -> bool:
 
 
 def fight(player: VideoGame, monster: methods.Monster) -> bool:
-    """Run a turn-based encounter and return whether the player won."""
+    """Run a turn-based encounter; return True if the player wins."""
     print(f"A {monster.name} appears!")
     while player.health > 0 and monster.health > 0:
         player.attack(monster)
-        if monster.health <= 0:
-            break
-        player.take_damage(monster.attack())
-
+        if monster.health > 0:
+            player.take_damage(monster.attack())
     if player.health > 0:
         print(f"You defeated the {monster.name}!")
         return True
-
     print("You were defeated.")
     methods.lives -= 1
     return False
 
 
 def apply_reward(player: VideoGame, reward: str) -> None:
-    """Apply a supported chest or shop reward to the player."""
+    """Apply a supported chest or shop reward."""
     if reward.endswith("G") and reward[:-1].isdigit():
         amount = int(reward[:-1])
         player.coins += amount
@@ -156,7 +126,7 @@ def visit_shop(player: VideoGame) -> None:
 
 
 def run_encounter(player: VideoGame, monster: methods.Monster) -> None:
-    """Handle the player's choice to fight or flee from a monster."""
+    """Handle the player's choice to fight or flee."""
     choice = methods.formatted(input(f"A {monster.name} blocks the way. Fight or flee? "))
     if choice == "flee":
         if not methods.flee_attempt(methods.flee_probabilities, monster.name):
@@ -169,11 +139,10 @@ def run_encounter(player: VideoGame, monster: methods.Monster) -> None:
 
 
 def run_menu(player: VideoGame) -> VideoGame:
-    """Run the rest-stop command menu and return the active character."""
+    """Run the rest-stop menu and return the active character."""
     while methods.lives > 0 and player.health > 0:
         print("Available commands:", ", ".join(possible_commands))
         command = methods.formatted(input("Command: "))
-
         if command == "exit":
             break
         if command == "check stats":
@@ -181,8 +150,7 @@ def run_menu(player: VideoGame) -> VideoGame:
         elif command == "save character":
             methods.save_character(player, input("File name (without .txt): "))
         elif command == "access attribute":
-            attribute = input("Attribute name: ").strip().lower()
-            methods.access_attribute(attribute, player)
+            methods.access_attribute(input("Attribute name: ").strip().lower(), player)
         elif command == "create new character":
             player = create_character_instance()
         else:
@@ -195,7 +163,6 @@ def main() -> None:
     player = create_character_instance()
     print(f"Welcome, {player.name}! You venture through a vast forest.")
     print("At the fork, one path leads to Skeletons and the other to a Crystal Dragon.")
-
     paths = methods.choose_path({1, 2}, 2)
     skeleton_path = random.choice(tuple(paths))
     while True:
@@ -212,8 +179,7 @@ def main() -> None:
 
     if methods.lives > 0 and player.health > 0:
         if ask_yes_no("Open the wooden chest? (y/n): "):
-            reward = methods.open_chest(methods.wood_chest, methods.wood_prob)
-            apply_reward(player, reward)
+            apply_reward(player, methods.open_chest(methods.wood_chest, methods.wood_prob))
 
     if methods.lives > 0 and player.health > 0:
         if ask_yes_no("Rest at the boulder? (y/n): "):
