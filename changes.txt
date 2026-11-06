@@ -1,1 +1,35 @@
+Change log
+==========
 
+The entries below summarize the fixes prepared for main.py and methods.py. They describe the proposed corrected versions; they do not imply that those source-file edits have already been applied.
+
+methods.py
+----------
+- methods.py:1:1 — Removed the import of main.py to prevent a circular import; retained only the standard-library random dependency.
+- methods.py:6:1 — Replaced the input-normalization lambda with a documented formatted(value) helper that safely strips whitespace and lowercases text.
+- methods.py:9:1 — Corrected ListError to be a normal ValueError subclass instead of raising an exception while the class is defined.
+- methods.py:25:1 — Kept flee odds and game constants in clear data structures; defined Monster before creating the monster instances, so those names are available when instantiated.
+- methods.py:41:1 — Added consistent Monster damage and display methods, and initialized the encounter monsters with usable attack-power values.
+- methods.py:55:1 — Changed chest_dict to use string keys rather than mutable lists, which cannot be dictionary keys.
+- methods.py:65:1 — Reworked open_chest() to validate list types, matching list lengths, nonempty loot, and nonnegative weights; it now returns the selected reward for the caller to apply.
+- methods.py:82:1 — Fixed flee_attempt() to use random.random(), validate the monster name and probability, and update the module's lives counter after a failed attempt.
+- methods.py:101:1 — Simplified choose_path() validation and made it return the available numbered paths.
+- methods.py:114:1 — Repaired shop() input handling; it now accepts the supplied price and returns purchase details instead of using undefined self or an invalid .formatted() call.
+- methods.py:127:1 — Repaired save_character() to write the passed character's state using a context manager and UTF-8 encoding.
+- methods.py:137:1 — Repaired access_attribute() to use its argument, map display labels such as “attack power” to attribute names, and report missing/unsupported attributes clearly.
+
+main.py
+-------
+- main.py:1:1 — Removed invalid and unused imports and imported methods as a Python module (`import methods`); removed the malformed top-level shop call.
+- main.py:7:1 — Replaced the broken zero-argument formatting lambda with a helper call to methods.formatted() where user input is normalized.
+- main.py:14:1 — Replaced exception classes that raised during class definition with ordinary exception subclasses.
+- main.py:32:1 — Reworked VideoGame initialization so it stores supplied character values and initializes health, level, coins, and combat stats consistently.
+- main.py:45:1 — Fixed player damage, attack, level-up, and string-display behavior; removed recursive/broken property definitions.
+- main.py:115:1 — Removed the duplicate broken Monster implementation from main.py and used methods.Monster as the shared monster model.
+- main.py:176:1 — Moved interactive startup and adventure execution into functions and a `if __name__ == "__main__"` guard, so importing the module does not immediately prompt or start the game.
+- main.py:233:1 — Saved and validated the player's chosen path, then selected the Skeleton or Crystal Dragon encounter based on the randomly assigned Skeleton path.
+- main.py:240:1 — Added a turn-based fight flow that passes the target to attack(), lets the monster retaliate, and handles win/loss results without calling non-callable values.
+- main.py:263:1 — Captured the value returned by methods.open_chest() and applied the reward, instead of referencing an undefined selected_item.
+- main.py:275:1 — Routed menu actions through the correct methods module functions and gathered the requested attribute name before calling access_attribute().
+- main.py:303:1 — Replaced the Kyle Walker branch's undefined names and misspelled calls with the shared combat/flee helpers.
+- main.py:1:1 — Added shared helpers for yes/no prompts, character creation, fight handling, reward application, and purchases to reduce duplicated logic and keep game flow explicit.
