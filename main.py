@@ -162,19 +162,22 @@ def main() -> None:
     """Start the RPG adventure."""
     player = create_character_instance()
     print(f"Welcome, {player.name}! You venture through a vast forest.")
-    print("At the fork, one path leads to Skeletons and the other to a Crystal Dragon.")
-    paths = methods.choose_path({1, 2}, 2)
-    skeleton_path = random.choice(tuple(paths))
+
+    path_encounters = {
+        1: methods.Skeleton,
+        2: methods.Crystal_Dragon,
+    }
+    print("Path 1: A forest clearing where skeletons gather.")
+    print("Path 2: A cave where a crystal dragon guards a chest.")
+
     while True:
         try:
             chosen_path = int(input("Choose path 1 or 2: "))
-            if chosen_path in paths:
-                break
-        except ValueError:
-            pass
-        print("Choose either 1 or 2.")
+            monster = path_encounters[chosen_path]
+            break
+        except (ValueError, KeyError):
+            print("Choose either path 1 or path 2.")
 
-    monster = methods.Skeleton if chosen_path == skeleton_path else methods.Crystal_Dragon
     run_encounter(player, monster)
 
     if methods.lives > 0 and player.health > 0:
