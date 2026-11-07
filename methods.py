@@ -1,4 +1,5 @@
 import random
+import main
 
 lives = 3
 
