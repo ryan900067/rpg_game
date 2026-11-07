@@ -16,6 +16,8 @@ class VideoGame:
     """Player character and combat statistics."""
 
     MAX_LEVEL = 20
+    LEVEL_UP_COINS=250
+
    
 
     def __init__(self, health=100, strength=10, speed=10, level=1, name="Player",
@@ -28,7 +30,7 @@ class VideoGame:
         self.coins = max(0, int(coins))
         self.attack_power = float(attack_power)
         self.defense = float(defense)
-     LEVEL_UP_COINS = (self.level)*120
+     
 
     def level_up(self) -> bool:
         """Advance one level, grant coins, and restore health; return whether it succeeded."""
