@@ -15,8 +15,8 @@ class InvalidInputError(ValueError):
 class VideoGame:
     """Player character and combat statistics."""
 
-    MAX_LEVEL = 10
-    LEVEL_UP_COINS = 100
+    MAX_LEVEL = 20
+   
 
     def __init__(self, health=100, strength=10, speed=10, level=1, name="Player",
                  coins=0, attack_power=10, defense=5):
@@ -28,6 +28,7 @@ class VideoGame:
         self.coins = max(0, int(coins))
         self.attack_power = float(attack_power)
         self.defense = float(defense)
+     LEVEL_UP_COINS = (self.level)*120
 
     def level_up(self) -> bool:
         """Advance one level, grant coins, and restore health; return whether it succeeded."""
