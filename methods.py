@@ -1,12 +1,13 @@
 import random
-import 
 
 lives = 3
 
 
 def formatted(value: str) -> str:
     """Normalize text for case-insensitive comparisons."""
-    return value.strip().lower()
+    if value is None:
+        raise TypeError("Input cannot be None.")
+    return str(value).strip().lower()
 
 
 class ListError(ValueError):
@@ -88,6 +89,9 @@ def open_chest(chest: list, probability: list) -> str:
         raise ValueError("The chest is empty.")
     if any(weight < 0 for weight in probability):
         raise ValueError("Probabilities cannot be negative.")
+    if any(weight == 0 for weight in probability):
+        # zero-weight entries are valid, but an all-zero selection would fail; reject as invalid input.
+        raise ValueError("At least one probability must be greater than zero.")
     item = random.choices(chest, weights=probability, k=1)[0]
     print(f"You got {item}")
     return item
@@ -110,12 +114,14 @@ def flee_attempt(probability_table: dict, monster_name: str) -> bool:
 
 
 def choose_path(path: set, path_amount: int) -> set:
-    """Validate the path options and return numbered available paths."""
-    if not isinstance(path, set) or any(type(n) is not int for n in path):
+    """Validate the path options and return the valid available paths."""
+    if not isinstance(path, set) or any((type(n) is not int) for n in path):
         raise TypeError("Paths must be provided as a set of integers.")
-    if len(path) <= 1 or type(path_amount) is not int or path_amount < 2:
+    if len(path) < 2 or not isinstance(path_amount, int) or isinstance(path_amount, bool) or path_amount < 2:
         raise ValueError("At least two paths are required.")
-    return set(range(1, path_amount + 1))
+    if any(n < 1 or n > path_amount for n in path):
+        raise ValueError("Paths must be numbered between 1 and path_amount.")
+    return path
 
 
 def shop(price: float, selected_item: str):
@@ -134,7 +140,7 @@ def shop(price: float, selected_item: str):
 
 def save_character(character, file_name: str) -> None:
     """Append a character's attributes to a UTF-8 text file."""
-    if not file_name.strip():
+    if not isinstance(file_name, str) or not file_name.strip():
         raise ValueError("File name cannot be empty.")
     with open(f"{file_name}.txt", "a", encoding="utf-8") as file:
         file.write(f"{character.__class__.__name__}: {character.__dict__}\n")
