@@ -15,16 +15,34 @@ class InvalidInputError(ValueError):
 class VideoGame:
     """Player character and combat statistics."""
 
+    MAX_LEVEL = 10
+    LEVEL_UP_COINS = 100
+
     def __init__(self, health=100, strength=10, speed=10, level=1, name="Player",
                  coins=0, attack_power=10, defense=5):
         self.health = max(1, min(100, int(health)))
         self.strength = int(strength)
         self.speed = int(speed)
-        self.level = max(1, min(10, int(level)))
+        self.level = max(1, min(self.MAX_LEVEL, int(level)))
         self.name = name.strip() or "Player"
         self.coins = max(0, int(coins))
         self.attack_power = float(attack_power)
         self.defense = float(defense)
+
+    def level_up(self) -> bool:
+        """Advance one level, grant coins, and restore health; return whether it succeeded."""
+        if self.level >= self.MAX_LEVEL:
+            print(f"{self.name} is already at the maximum level ({self.MAX_LEVEL}).")
+            return False
+
+        self.level += 1
+        self.coins += self.LEVEL_UP_COINS
+        self.health = 100
+        print(
+            f"{self.name} reached level {self.level}! "
+            f"Gained {self.LEVEL_UP_COINS} coins and restored health to 100."
+        )
+        return True
 
     def take_damage(self, amount: float) -> int:
         damage = max(0, amount - self.defense)
@@ -85,6 +103,7 @@ def fight(player: VideoGame, monster: methods.Monster) -> bool:
             player.take_damage(monster.attack())
     if player.health > 0:
         print(f"You defeated the {monster.name}!")
+        player.level_up()
         return True
     print("You were defeated.")
     methods.lives -= 1
