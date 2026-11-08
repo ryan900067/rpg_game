@@ -1,5 +1,6 @@
 import random
 import main
+import pandas as pd
 
 lives = 3
 
@@ -158,3 +159,10 @@ def access_attribute(attribute_name: str, character):
     value = getattr(character, key)
     print(f"{attribute_name}: {value}")
     return value
+
+
+def access_inventory(character):
+    """Display and return the character's inventory as a pandas DataFrame."""
+    inventory = pd.DataFrame({"Item": character.inventory})
+    print(inventory.to_string(index=False))
+    return inventory

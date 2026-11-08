@@ -1,10 +1,12 @@
 import random
 
 import methods
+import pandas as pd
 
 
 possible_commands = (
-    "save character", "check stats", "access attribute", "create new character", "exit"
+    "access inventory", "save character", "check stats", "access attribute",
+    "create new character", "continue", "exit"
 )
 
 
@@ -30,6 +32,7 @@ class VideoGame:
         self.coins = max(0, int(coins))
         self.attack_power = float(attack_power)
         self.defense = float(defense)
+        self.inventory = []
      
 
     def level_up(self) -> bool:
@@ -100,10 +103,58 @@ def ask_yes_no(prompt: str) -> bool:
 def fight(player: VideoGame, monster: methods.Monster) -> bool:
     """Run a turn-based encounter; return True if the player wins."""
     print(f"A {monster.name} appears!")
+    player_max_health = 100
+    monster_max_health = max(1, monster.health)
+    bar_width = 20
+    last_actions = {"player": "Ready", "monster": "Waiting"}
+
+    def display_status(round_number: int) -> None:
+        fighters = []
+        for side, name, health, max_health in (
+            ("Player", player.name, player.health, player_max_health),
+            ("Monster", monster.name, monster.health, monster_max_health),
+        ):
+            health_ratio = max(0, min(health / max_health, 1))
+            filled = round(health_ratio * bar_width)
+            condition = (
+                "Defeated" if health <= 0
+                else "Critical" if health_ratio <= 0.25
+                else "Wounded" if health_ratio <= 0.6
+                else "Healthy"
+            )
+            fighters.append({
+                "Fighter": name,
+                "Side": side,
+                "Health": f"{health:g}/{max_health:g}",
+                "HP": f"[{'#' * filled}{'-' * (bar_width - filled)}]",
+                "Status": condition,
+                "Last action": last_actions[side.lower()],
+            })
+
+        status = pd.DataFrame(
+            fighters,
+            columns=("Fighter", "Side", "Health", "HP", "Status", "Last action"),
+        )
+        print(f"\nRound {round_number} — Combat status")
+        print(status.to_string(index=False))
+
+    round_number = 1
+    display_status(round_number)
     while player.health > 0 and monster.health > 0:
+        monster_health_before = monster.health
         player.attack(monster)
+        player_damage = monster_health_before - monster.health
+        last_actions["player"] = f"Dealt {player_damage:g} damage"
         if monster.health > 0:
+            player_health_before = player.health
             player.take_damage(monster.attack())
+            player_damage_taken = player_health_before - player.health
+            last_actions["monster"] = f"Dealt {player_damage_taken:g} damage"
+            last_actions["player"] = (
+                f"Dealt {player_damage:g}; took {player_damage_taken:g} damage"
+            )
+        display_status(round_number)
+        round_number += 1
     if player.health > 0:
         print(f"You defeated the {monster.name}!")
         player.level_up()
@@ -165,6 +216,9 @@ def run_menu(player: VideoGame) -> VideoGame:
     while methods.lives > 0 and player.health > 0:
         print("Available commands:", ", ".join(possible_commands))
         command = methods.formatted(input("Command: "))
+        if command == "continue":
+            print("Continuing your adventure...")
+            break
         if command == "exit":
             break
         if command == "check stats":
@@ -173,6 +227,8 @@ def run_menu(player: VideoGame) -> VideoGame:
             methods.save_character(player, input("File name (without .txt): "))
         elif command == "access attribute":
             methods.access_attribute(input("Attribute name: ").strip().lower(), player)
+        elif command == "access inventory":
+            methods.access_inventory(player)
         elif command == "create new character":
             player = create_character_instance()
         else:
