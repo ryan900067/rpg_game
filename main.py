@@ -1,10 +1,11 @@
 import random
-
+import pandas as pd
 import methods
 
 
 possible_commands = (
-    "save character", "check stats", "access attribute", "create new character", "exit"
+    "save character", "check stats", "access attribute", "create new character", "exit","display inventory"
+    
 )
 
 
@@ -175,6 +176,9 @@ def run_menu(player: VideoGame) -> VideoGame:
             methods.access_attribute(input("Attribute name: ").strip().lower(), player)
         elif command == "create new character":
             player = create_character_instance()
+        elif command=="display inventory":
+            pass
+            
         else:
             print("Unknown command. Choose one from the list.")
     return player
