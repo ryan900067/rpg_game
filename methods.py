@@ -46,9 +46,6 @@ class Monster:
         self.attack_power = attack_power
 
     def take_damage(self, amount: float) -> int:
-        # Monsters already define dodge rates, so use them whenever combat damage is applied.
-        if random.random() < self.dodge_rate:
-            return self.health
         self.health = max(0, self.health - max(0, amount))
         return self.health
 
@@ -76,7 +73,7 @@ wood_prob = [0.60, 0.20, 0.13, 0.07]
 silver_chest = ["250G", "500G", "1000G", "HP", "STRENGTH", "X2Stats"]
 silver_prob = [0.199, 0.50, 0.15, 0.10, 0.05, 0.001]
 gold_chest = ["1000G", "2500G", "5000G", "HP", "STRENGTH", "X2Stats", str(permanent_boosts["Tier 1"])]
-gold_prob = [0.10, 0.20, 0.20, 0.15, 0.15, 0.10, 0.05]
+gold_prob = [0.10, 0.20, 0.20, 0.20, 0.15, 0.10, 0.05]
 chest_dict = {
     "wood": (wood_chest, wood_prob),
     "silver": (silver_chest, silver_prob),
@@ -94,8 +91,8 @@ def open_chest(chest: list, probability: list) -> str:
         raise ValueError("The chest is empty.")
     if any(weight < 0 for weight in probability):
         raise ValueError("Probabilities cannot be negative.")
-    # Zero-weight outcomes are valid; only an all-zero list cannot be sampled.
-    if not any(weight > 0 for weight in probability):
+    if any(weight == 0 for weight in probability):
+        # zero-weight entries are valid, but an all-zero selection would fail; reject as invalid input.
         raise ValueError("At least one probability must be greater than zero.")
     item = random.choices(chest, weights=probability, k=1)[0]
     print(f"You got {item}")
@@ -133,15 +130,14 @@ def shop(price: float, selected_item: str):
     """Ask whether to buy an offered item and return purchase details."""
     if price < 0:
         raise ValueError("Price cannot be negative.")
-    # Keep prompting on invalid input so a typo isn't treated as declining the purchase.
-    while True:
-        answer = formatted(input(f"Buy {selected_item} for {price} coins? (y/n): "))
-        if answer == "y":
-            return {"item": selected_item, "price": float(price)}
-        if answer == "n":
-            print("Continuing...")
-            return None
-        print("Please answer y or n.")
+    answer = formatted(input(f"Buy {selected_item} for {price} coins? (y/n): "))
+    if answer == "y":
+        return {"item": selected_item, "price": float(price)}
+    if answer == "n":
+        print("Continuing...")
+        return None
+    print("Please answer y or n.")
+    return None
 
 
 def save_character(character, file_name: str) -> None:
@@ -164,3 +160,9 @@ def access_attribute(attribute_name: str, character):
     print(f"{attribute_name}: {value}")
     return value
 
+
+def access_inventory(character):
+    """Display and return the character's inventory as a pandas DataFrame."""
+    inventory = pd.DataFrame({"Item": character.inventory})
+    print(inventory.to_string(index=False))
+    return inventory
