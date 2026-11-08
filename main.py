@@ -56,7 +56,8 @@ class VideoGame:
     def attack(self, target) -> int:
         damage = self.attack_power + self.strength * 0.25
         remaining_health = target.take_damage(damage)
-        print(f"{self.name} hits {target.name} for {damage:g} damage.")
+        # Damage may be dodged by Monster.take_damage, so describe this as an attack attempt.
+        print(f"{self.name} attacks {target.name} for up to {damage:g} damage.")
         return remaining_health
 
     def __str__(self):
@@ -172,7 +173,11 @@ def run_menu(player: VideoGame) -> VideoGame:
         elif command == "save character":
             methods.save_character(player, input("File name (without .txt): "))
         elif command == "access attribute":
-            methods.access_attribute(input("Attribute name: ").strip().lower(), player)
+            # Invalid names should report an error and return to the menu, not terminate the game.
+            try:
+                methods.access_attribute(input("Attribute name: ").strip().lower(), player)
+            except (ValueError, AttributeError) as error:
+                print(f"Cannot access attribute: {error}")
         elif command == "create new character":
             player = create_character_instance()
         else:
@@ -222,3 +227,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
