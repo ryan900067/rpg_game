@@ -22,7 +22,7 @@ class VideoGame:
    
 
     def __init__(self, health=100, strength=10, speed=10, level=1, name="Player",
-                 coins=0, attack_power=10, defense=5):
+                 coins=0, attack_power=10, defense=5,inventory:list):
         self.health = max(1, min(100, int(health)))
         self.strength = int(strength)
         self.speed = int(speed)
@@ -31,6 +31,7 @@ class VideoGame:
         self.coins = max(0, int(coins))
         self.attack_power = float(attack_power)
         self.defense = float(defense)
+        self.inventory=list(inventory)
      
 
     def level_up(self) -> bool:
