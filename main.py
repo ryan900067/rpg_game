@@ -198,17 +198,58 @@ def visit_shop(player: VideoGame) -> None:
     print(f"Purchased {item} for {price} coins.")
 
 
-def run_encounter(player: VideoGame, monster: methods.Monster) -> None:
-    """Handle the player's choice to fight or flee."""
+def run_encounter(player: VideoGame, monster: methods.Monster) -> bool:
+    """Handle the player's choice to fight or flee; return whether they survived."""
     choice = methods.formatted(input(f"A {monster.name} blocks the way. Fight or flee? "))
     if choice == "flee":
-        if not methods.flee_attempt(methods.flee_probabilities, monster.name):
-            fight(player, monster)
+        if methods.flee_attempt(methods.flee_probabilities, monster.name):
+            return True
+        elif fight(player, monster):
+            return True
+        else:
+            return False
     elif choice == "fight":
         if fight(player, monster):
             visit_shop(player)
+            return True
+        else:
+            return False
     else:
         raise InvalidInputError("Enter 'fight' or 'flee'.")
+    return False
+
+
+def game_is_active(player: VideoGame) -> bool:
+    """Return whether the player can continue the adventure."""
+    return methods.lives > 0 and player.health > 0
+
+
+def offer_chest(player: VideoGame, chest_name: str) -> None:
+    """Offer a chest and apply its reward if the player opens it."""
+    chest, probability = methods.chest_dict[chest_name]
+    if ask_yes_no(f"Open the {chest_name} chest? (y/n): "):
+        apply_reward(player, methods.open_chest(chest, probability))
+
+
+def run_adventure_stage(
+    player: VideoGame,
+    monster_name: str,
+    chest_name: str,
+    rest_name: str,
+) -> tuple[VideoGame, bool]:
+    """Run an encounter followed by its optional chest and rest stop."""
+    if not run_encounter(player, methods.create_monster(monster_name)):
+        return player, False
+    if not game_is_active(player):
+        return player, False
+
+    offer_chest(player, chest_name)
+    if not game_is_active(player):
+        return player, False
+
+    if ask_yes_no(f"Rest at {rest_name}? (y/n): "):
+        player = run_menu(player)
+    return player, game_is_active(player)
 
 
 def run_menu(player: VideoGame) -> VideoGame:
@@ -241,35 +282,65 @@ def main() -> None:
     player = create_character_instance()
     print(f"Welcome, {player.name}! You venture through a vast forest.")
 
-    path_encounters = {
-        1: methods.Skeleton,
-        2: methods.Crystal_Dragon,
-    }
     print("Path 1: A forest clearing where skeletons gather.")
     print("Path 2: A cave where a crystal dragon guards a chest.")
 
     while True:
         try:
             chosen_path = int(input("Choose path 1 or 2: "))
-            monster = path_encounters[chosen_path]
-            break
-        except (ValueError, KeyError):
+            if chosen_path == 1:
+                first_monster = "Skeleton"
+                break
+            elif chosen_path == 2:
+                first_monster = "Crystal Dragon"
+                break
+            else:
+                print("Choose either path 1 or path 2.")
+        except ValueError:
             print("Choose either path 1 or path 2.")
 
-    run_encounter(player, monster)
+    player, adventure_active = run_adventure_stage(
+        player, first_monster, "wood", "the boulder"
+    )
 
-    if methods.lives > 0 and player.health > 0:
-        if ask_yes_no("Open the wooden chest? (y/n): "):
-            apply_reward(player, methods.open_chest(methods.wood_chest, methods.wood_prob))
-
-    if methods.lives > 0 and player.health > 0:
-        if ask_yes_no("Rest at the boulder? (y/n): "):
-            player = run_menu(player)
+    if adventure_active:
+        if chosen_path == 1:
+            print("You continue through the forest and face the Green Dragon.")
+            player, adventure_active = run_adventure_stage(
+                player, "Green Dragon", "wood", "the forest clearing"
+            )
+        elif chosen_path == 2:
+            print("You venture deeper into the cave and face the Red Dragon.")
+            player, adventure_active = run_adventure_stage(
+                player, "Red Dragon", "wood", "the cave entrance"
+            )
         else:
-            print("You continue toward the stadium and encounter Prime Kyle Walker.")
-            run_encounter(player, methods.Prime_Kyle_Walker)
+            raise InvalidInputError("Choose either path 1 or path 2.")
 
-    if methods.lives <= 0 or player.health <= 0:
+    if adventure_active:
+        print("The Headless Horseman blocks your path.")
+        player, adventure_active = run_adventure_stage(
+            player, "Headless Horseman", "silver", "the roadside camp"
+        )
+
+    if adventure_active:
+        print("A Megalodon emerges from the water.")
+        player, adventure_active = run_adventure_stage(
+            player, "Megalodon", "gold", "the shoreline"
+        )
+
+    if adventure_active:
+        print("The Leviathan rises for a boss fight.")
+        player, adventure_active = run_adventure_stage(
+            player, "Leviathan", "gold", "the harbor"
+        )
+
+    if adventure_active:
+        print("You reach the stadium for the final boss fight against Prime Kyle Walker.")
+        if fight(player, methods.create_monster("Prime Kyle Walker")):
+            print("You defeated the final boss!")
+
+    if not game_is_active(player):
         print("Game over.")
     print("Final character stats:")
     print(player)

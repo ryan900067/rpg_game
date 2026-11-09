@@ -1,8 +1,9 @@
+from collections.abc import Callable
 import random
 import main
 import pandas as pd
 
-lives = 3
+lives = 5
 
 
 def formatted(value: str) -> str:
@@ -66,7 +67,36 @@ Skeleton = Monster("Skeleton", 50, 10, 20, 0.05, 10)
 Crystal_Dragon = Monster("Crystal Dragon", 150, 25, 5, 0.07, 25)
 Prime_Kyle_Walker = Monster("Prime Kyle Walker", 90, 30, 20, 0.20, 30)
 Green_Dragon = Monster("Green Dragon", 105, 20, 10, 0.10, 20)
-list_of_monsters = [Skeleton, Crystal_Dragon, Prime_Kyle_Walker, Green_Dragon]
+Red_Dragon = Monster("Red Dragon", 120, 25, 15, 0.10, 25)
+Headless_Horseman = Monster("Headless Horseman", 130, 30, 25, 0.15, 30)
+Leviathan = Monster("Leviathan", 200, 35, 10, 0.10, 35)
+Megalodon = Monster("Megalodon", 180, 30, 25, 0.20, 30)
+list_of_monsters = [
+    Skeleton,
+    Crystal_Dragon,
+    Prime_Kyle_Walker,
+    Green_Dragon,
+    Red_Dragon,
+    Headless_Horseman,
+    Leviathan,
+    Megalodon,
+]
+
+
+def create_monster(name: str) -> Monster:
+    """Return a fresh instance of a monster in the adventure roster."""
+    for monster in list_of_monsters:
+        if monster.name == name:
+            return Monster(
+                monster.name,
+                monster.health,
+                monster.strength,
+                monster.speed,
+                monster.dodge_rate,
+                monster.attack_power,
+            )
+    raise ValueError(f"Unknown monster: {name}")
+
 
 wood_chest = ["100G", "200G", "500G", "HP"]
 wood_prob = [0.60, 0.20, 0.13, 0.07]
@@ -126,11 +156,16 @@ def choose_path(path: set, path_amount: int) -> set:
     return path
 
 
-def shop(price: float, selected_item: str):
+def shop(
+    price: float,
+    selected_item: str,
+    input_fn: Callable[[str], str] | None = None,
+):
     """Ask whether to buy an offered item and return purchase details."""
     if price < 0:
         raise ValueError("Price cannot be negative.")
-    answer = formatted(input(f"Buy {selected_item} for {price} coins? (y/n): "))
+    read_input = input if input_fn is None else input_fn
+    answer = formatted(read_input(f"Buy {selected_item} for {price} coins? (y/n): "))
     if answer == "y":
         return {"item": selected_item, "price": float(price)}
     if answer == "n":
