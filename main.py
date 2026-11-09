@@ -18,16 +18,18 @@ class VideoGame:
     """Player character and combat statistics."""
 
     MAX_LEVEL = 20
+    MAX_HEALTH = 100
+    MAX_STRENGTH = 20
     LEVEL_UP_COINS=250
 
-   
-
-    def __init__(self, health=100, strength=10, speed=10, level=1, name="Player",
+    def __init__(self, health=100, strength=10, speed=10, name="Player",
                  coins=0, attack_power=10, defense=5):
-        self.health = max(1, min(100, int(health)))
+        self.health = max(1, min(self.MAX_HEALTH, int(health)))
         self.strength = int(strength)
+        if not 0 <= self.strength <= self.MAX_STRENGTH:
+            raise ValueError(f"Strength must be between 0 and {self.MAX_STRENGTH}.")
         self.speed = int(speed)
-        self.level = max(1, min(self.MAX_LEVEL, int(level)))
+        self.level = 1
         self.name = name.strip() or "Player"
         self.coins = max(0, int(coins))
         self.attack_power = float(attack_power)
@@ -43,10 +45,10 @@ class VideoGame:
 
         self.level += 1
         self.coins += self.LEVEL_UP_COINS
-        self.health = 100
+        self.health = self.MAX_HEALTH
         print(
             f"{self.name} reached level {self.level}! "
-            f"Gained {self.LEVEL_UP_COINS} coins and restored health to 100."
+            f"Gained {self.LEVEL_UP_COINS} coins and restored health to {self.MAX_HEALTH}."
         )
         return True
 
@@ -73,16 +75,17 @@ def create_character_instance() -> VideoGame:
     while True:
         try:
             name = input("Enter character name: ").strip()
-            level = int(input("Enter level (1–10): "))
-            strength = int(input("Enter strength: "))
-            speed = int(input("Enter speed: "))
+            strength = int(input(f"Enter strength (0-{VideoGame.MAX_STRENGTH}): "))
             if not name:
                 raise ValueError("Name cannot be empty.")
-            if not 1 <= level <= 10:
-                raise ValueError("Level must be between 1 and 10.")
-            if strength < 0 or speed < 0:
-                raise ValueError("Strength and speed cannot be negative.")
-            return VideoGame(name=name, level=level, strength=strength, speed=speed)
+            if not 0 <= strength <= VideoGame.MAX_STRENGTH:
+                raise ValueError(
+                    f"Strength must be between 0 and {VideoGame.MAX_STRENGTH}."
+                )
+            speed = int(input("Enter speed: "))
+            if speed < 0:
+                raise ValueError("Speed cannot be negative.")
+            return VideoGame(name=name, strength=strength, speed=speed)
         except ValueError as error:
             print(f"Invalid character details: {error}")
             if methods.formatted(input("Try again? (y/n): ")) != "y":
@@ -103,7 +106,7 @@ def ask_yes_no(prompt: str) -> bool:
 def fight(player: VideoGame, monster: methods.Monster) -> bool:
     """Run a turn-based encounter; return True if the player wins."""
     print(f"A {monster.name} appears!")
-    player_max_health = 100
+    player_max_health = VideoGame.MAX_HEALTH
     monster_max_health = max(1, monster.health)
     bar_width = 20
     last_actions = {"player": "Ready", "monster": "Waiting"}
@@ -171,11 +174,17 @@ def apply_reward(player: VideoGame, reward: str) -> None:
         player.coins += amount
         print(f"You gained {amount} coins.")
     elif reward.upper() == "HP":
-        player.health = min(100, player.health + random.randint(10, 25))
+        player.health = min(
+            VideoGame.MAX_HEALTH, player.health + random.randint(10, 25)
+        )
         print(f"Health restored to {player.health}.")
     elif reward.upper() == "STRENGTH":
-        player.strength += 5
-        print("Strength increased by 5.")
+        strength_increase = min(5, VideoGame.MAX_STRENGTH - player.strength)
+        player.strength += strength_increase
+        if strength_increase:
+            print(f"Strength increased by {strength_increase}.")
+        else:
+            print(f"Strength is already at the maximum ({VideoGame.MAX_STRENGTH}).")
     elif reward == "X2Stats":
         player.attack_power *= 2
         print("Attack power doubled.")
