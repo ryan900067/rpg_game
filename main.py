@@ -1,3 +1,4 @@
+import ast
 import random
 
 import methods
@@ -5,7 +6,7 @@ import pandas as pd
 
 
 possible_commands = (
-    "access inventory", "save character", "check stats", "access attribute",
+    "access inventory", "save character", "load character", "check stats", "access attribute",
     "create new character", "continue", "exit"
 )
 
@@ -92,6 +93,47 @@ def create_character_instance() -> VideoGame:
                 raise SystemExit("Character creation cancelled.")
         finally:
             print("Character creation attempt finished.")
+
+
+def load_character_instance(file_name: str) -> VideoGame:
+    """Load the latest character saved by methods.save_character()."""
+    if not file_name.strip():
+        raise ValueError("File name cannot be empty.")
+    path = file_name if file_name.endswith(".txt") else f"{file_name}.txt"
+    with open(path, "r", encoding="utf-8") as file:
+        saved_lines = [line.strip() for line in file if line.strip()]
+    if not saved_lines:
+        raise ValueError("The save file is empty.")
+
+    class_name, separator, saved_data = saved_lines[-1].partition(": ")
+    if not separator or class_name != "VideoGame":
+        raise ValueError("The latest entry is not a valid saved character.")
+    try:
+        data = ast.literal_eval(saved_data)
+    except (SyntaxError, ValueError) as error:
+        raise ValueError("The latest save entry is invalid.") from error
+    if not isinstance(data, dict):
+        raise ValueError("The save file does not contain character data.")
+
+    character = VideoGame(
+        health=data.get("health", 100),
+        strength=data.get("strength", 10),
+        speed=data.get("speed", 10),
+        name=data.get("name", "Player"),
+        coins=data.get("coins", 0),
+        attack_power=data.get("attack_power", 10),
+        defense=data.get("defense", 5),
+    )
+    level = int(data.get("level", 1))
+    if not 1 <= level <= VideoGame.MAX_LEVEL:
+        raise ValueError(f"Saved level must be between 1 and {VideoGame.MAX_LEVEL}.")
+    inventory = data.get("inventory", [])
+    if not isinstance(inventory, list):
+        raise ValueError("Saved inventory must be a list.")
+    character.level = level
+    character.inventory = inventory
+    print(f"Loaded character {character.name} from {path}.")
+    return character
 
 
 def ask_yes_no(prompt: str) -> bool:
@@ -275,6 +317,11 @@ def run_menu(player: VideoGame) -> VideoGame:
             print(player)
         elif command == "save character":
             methods.save_character(player, input("File name (without .txt): "))
+        elif command == "load character":
+            try:
+                player = load_character_instance(input("File name (with or without .txt): "))
+            except (OSError, TypeError, ValueError) as error:
+                print(f"Could not load character: {error}")
         elif command == "access attribute":
             methods.access_attribute(input("Attribute name: ").strip().lower(), player)
         elif command == "access inventory":
