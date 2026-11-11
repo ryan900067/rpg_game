@@ -1,1 +1,0 @@
-VideoGame: {'health': 100, 'strength': 10, 'speed': 10, 'level': 2, 'name': 'Ryan', 'coins': 200, 'attack_power': 20.0, 'defense': 5.0, 'inventory': []}
