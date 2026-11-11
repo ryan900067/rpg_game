@@ -16,3 +16,30 @@ NPCs
 Special Monsters for each biome
 Progression
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+HOW TO INSTALL PANDAS:
+Check if pip is installed: python3 -m pip --version
+Install pip: python3 -m ensure pip --upgrade
+Install pandas: pip/pip3 install pandas
+OR:
+Download requirements.txt and paste in VSCODE
+Run: python3 -m pip --version
+Run: python3 -m ensure pip --upgrade
+Run: pip/pip3 install requirements.txt
+
+*END OF .md FILE*
