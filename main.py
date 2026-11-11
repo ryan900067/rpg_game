@@ -1,4 +1,5 @@
 import ast
+from functools import wraps
 import random
 
 import methods
@@ -15,6 +16,32 @@ class InvalidInputError(ValueError):
     """Raised when the player enters an unsupported choice."""
 
 
+SPECIAL_ATTACKS = {
+    "Poison": {"price": 150, "aftershock_damage": 5},
+}
+
+
+def special_attack(name: str):
+    """Decorate an attack with an owned special attack's effect."""
+    if name not in SPECIAL_ATTACKS:
+        raise ValueError(f"Unknown special attack: {name}")
+
+    def decorate(attack):
+        @wraps(attack)
+        def wrapped(player, target):
+            remaining_health = attack(player, target)
+            attack_data = SPECIAL_ATTACKS[name]
+            if name in player.inventory and target.health > 0:
+                damage = attack_data["aftershock_damage"]
+                target.take_damage(damage)
+                print(f"{target.name} takes {damage} poison aftershock damage.")
+            return target.health if name in player.inventory else remaining_health
+
+        return wrapped
+
+    return decorate
+
+
 class VideoGame:
     """Player character and combat statistics."""
 
@@ -22,6 +49,7 @@ class VideoGame:
     MAX_HEALTH = 100
     MAX_STRENGTH = 20
     LEVEL_UP_COINS=250
+    POISON_AFTERSHOCK_DAMAGE=5
 
     def __init__(self, health=100, strength=10, speed=10, name="Player",
                  coins=0, attack_power=10, defense=5):
@@ -59,6 +87,7 @@ class VideoGame:
         print(f"{self.name} takes {damage:g} damage.")
         return self.health
 
+    @special_attack("Poison")
     def attack(self, target) -> int:
         damage = self.attack_power + self.strength * 0.25
         remaining_health = target.take_damage(damage)
@@ -236,8 +265,15 @@ def apply_reward(player: VideoGame, reward: str) -> None:
 
 def visit_shop(player: VideoGame) -> None:
     """Offer a random item and apply the purchase if affordable."""
-    item = random.choice(methods.possible_shop_items)
-    price = random.randint(100, 200)
+    available_items = methods.possible_shop_items
+    if "Poison" not in player.inventory:
+        available_items += ("Poison",)
+    item = random.choice(available_items)
+    price = (
+        SPECIAL_ATTACKS[item]["price"]
+        if item in SPECIAL_ATTACKS
+        else random.randint(100, 200)
+    )
     purchase = methods.shop(price, item)
     if purchase is None:
         return
@@ -245,7 +281,11 @@ def visit_shop(player: VideoGame) -> None:
         print("You don't have enough coins.")
         return
     player.coins -= price
-    apply_reward(player, item)
+    if item in SPECIAL_ATTACKS:
+        player.inventory.append(item)
+        print(f"Learned the {item} special attack.")
+    else:
+        apply_reward(player, item)
     print(f"Purchased {item} for {price} coins.")
 
 
@@ -282,13 +322,23 @@ def offer_chest(player: VideoGame, chest_name: str) -> None:
         apply_reward(player, methods.open_chest(chest, probability))
 
 
+def show_map(map_name: str) -> methods.GameMap:
+    """Instantiate a map and show the NPCs currently there."""
+    game_map = methods.create_map(map_name)
+    print(f"\nYou arrive at {game_map.name}.")
+    print("NPCs nearby: " + ", ".join(game_map.npcs))
+    return game_map
+
+
 def run_adventure_stage(
     player: VideoGame,
     monster_name: str,
     chest_name: str,
     rest_name: str,
+    map_name: str,
 ) -> tuple[VideoGame, bool]:
     """Run an encounter followed by its optional chest and rest stop."""
+    show_map(map_name)
     if not run_encounter(player, methods.create_monster(monster_name)):
         return player, False
     if not game_is_active(player):
@@ -346,9 +396,11 @@ def main() -> None:
             chosen_path = int(input("Choose path 1 or 2: "))
             if chosen_path == 1:
                 first_monster = "Skeleton"
+                first_map = "forest clearing"
                 break
             elif chosen_path == 2:
                 first_monster = "Crystal Dragon"
+                first_map = "crystal cave"
                 break
             else:
                 print("Choose either path 1 or path 2.")
@@ -356,19 +408,19 @@ def main() -> None:
             print("Choose either path 1 or path 2.")
 
     player, adventure_active = run_adventure_stage(
-        player, first_monster, "wood", "the boulder"
+        player, first_monster, "wood", "the boulder", first_map
     )
 
     if adventure_active:
         if chosen_path == 1:
             print("You continue through the forest and face the Green Dragon.")
             player, adventure_active = run_adventure_stage(
-                player, "Green Dragon", "wood", "the forest clearing"
+                player, "Green Dragon", "wood", "the forest clearing", "forest clearing"
             )
         elif chosen_path == 2:
             print("You venture deeper into the cave and face the Red Dragon.")
             player, adventure_active = run_adventure_stage(
-                player, "Red Dragon", "wood", "the cave entrance"
+                player, "Red Dragon", "wood", "the cave entrance", "crystal cave"
             )
         else:
             raise InvalidInputError("Choose either path 1 or path 2.")
@@ -376,23 +428,24 @@ def main() -> None:
     if adventure_active:
         print("The Headless Horseman blocks your path.")
         player, adventure_active = run_adventure_stage(
-            player, "Headless Horseman", "silver", "the roadside camp"
+            player, "Headless Horseman", "silver", "the roadside camp", "roadside camp"
         )
 
     if adventure_active:
         print("A Megalodon emerges from the water.")
         player, adventure_active = run_adventure_stage(
-            player, "Megalodon", "gold", "the shoreline"
+            player, "Megalodon", "gold", "the shoreline", "shoreline"
         )
 
     if adventure_active:
         print("The Leviathan rises for a boss fight.")
         player, adventure_active = run_adventure_stage(
-            player, "Leviathan", "gold", "the harbor"
+            player, "Leviathan", "gold", "the harbor", "harbor"
         )
 
     if adventure_active:
         print("You reach the stadium for the final boss fight against Prime Kyle Walker.")
+        show_map("stadium")
         if fight(player, methods.create_monster("Prime Kyle Walker")):
             print("You defeated the final boss!")
 

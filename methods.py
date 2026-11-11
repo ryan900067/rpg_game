@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from dataclasses import dataclass
 import random
 import main
 import pandas as pd
@@ -15,6 +16,66 @@ def formatted(value: str) -> str:
 
 class ListError(ValueError):
     """Raised when chest items and their weights have different lengths."""
+
+
+@dataclass(frozen=True)
+class GameMap:
+    """A game location and its immutable NPC roster."""
+
+    name: str
+    npcs: tuple[str, ...]
+
+
+MAP_NPCS = {
+    "forest clearing": (
+        "Eldra the Herbalist", "Bram the Trapper", "Pip the Scout", "Moss the Forager",
+        "Tamsin the Ranger", "Old Rowan", "Clover the Merchant", "Wren the Storyteller",
+    ),
+    "crystal cave": (
+        "Neris the Geologist", "Durn the Miner", "Ayla the Torchbearer", "Glim the Hermit",
+        "Vey the Cartographer", "Orin the Smith", "Sable the Crystal Keeper", "Kett the Guide",
+    ),
+    "roadside camp": (
+        "Captain Marlow", "Ivo the Cook", "Sera the Healer", "Dax the Guard",
+        "Nell the Courier", "Rook the Gambler", "Pella the Merchant", "Tobin the Stablehand",
+    ),
+    "shoreline": (
+        "Maris the Fisher", "Coral the Diver", "Finn the Netmaker", "Bex the Boatwright",
+        "Tide the Naturalist", "Luma the Pearl Trader", "Gale the Sailor", "Niko the Lookout",
+    ),
+    "harbor": (
+        "Harbormaster Voss", "Etta the Navigator", "Jory the Dockworker", "Mina the Shipwright",
+        "Calder the Boatswain", "Rin the Tidecaller", "Boro the Fishmonger", "Willa the Pilot",
+    ),
+
+
+     "stadium": (
+        "Announcer Vale", "Coach Rhea", "Medic Sol", "Referee Kade",
+        "Scout Brin", "Vendor Tully", "Fan Jun", "Trainer Oona",
+    ),
+    "volcano summit": (
+        "Lava Rock Zombie", "Magma Golem", "Firefly Keeper", "Ashen Scout",
+    ),
+}
+
+MAP_MONSTERS={
+    "forest clearing": ("Skeleton", "Green Dragon"),
+    "crystal cave": ("Crystal Dragon", "Red Dragon"),
+    "roadside camp": ("Headless Horseman", "Skeleton"),
+    "shoreline": ("Leviathan", "Megalodon"),
+    "harbor": ("Green Dragon", "Red Dragon"),
+    "stadium": ("Prime Kyle Walker", "Skeleton"),
+}
+
+
+def create_map(name: str) -> GameMap:
+    """Instantiate a known map with its fixed NPC roster."""
+    if not isinstance(name, str):
+        raise TypeError("Map name must be a string.")
+    key = formatted(name)
+    if key not in MAP_NPCS:
+        raise ValueError(f"Unknown map: {name}")
+    return GameMap(name=key.title(), npcs=MAP_NPCS[key])
 
 
 attributes = (
