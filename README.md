@@ -11,4 +11,8 @@ Data Handling
 File Writing
 Lambda
 Helper Modules
+Biomes
+NPCs
+Special Monsters for each biome
+Progression
 
