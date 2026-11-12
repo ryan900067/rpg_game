@@ -448,8 +448,8 @@ MAP_NPCS = {
         "Calder the Boatswain", "Rin the Tidecaller", "Boro the Fishmonger", "Willa the Pilot",
     ),
     "stadium": (
-        "Announcer Vale", "Coach Rhea", "Medic Sol", "Referee Kade",
-        "Scout Brin", "Vendor Tully", "Fan Jun", "Trainer Oona",
+        "Announcer Vale", "Michael Carrick", "Medic Sol", "Referee Pierre",
+        "Scout Brin", "Vendor Tully", "Fan Jun", "Trainer Andre",
     ),
     "desert wastes": (
         "Zahra the Guide", "Basim the Glassmaker", "Tarek the Waterkeeper", "Suri the Caravaner",
