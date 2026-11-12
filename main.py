@@ -397,7 +397,8 @@ def show_map(map_name: str) -> methods.GameMap:
     """Instantiate a map and show the NPCs currently there."""
     game_map = methods.create_map(map_name)
     print(f"\nYou arrive at {game_map.name}.")
-    print("NPCs nearby: " + ", ".join(game_map.npcs))
+    for npc in game_map.npcs:
+        print(f"  - {methods.describe_npc(npc, map_name)}")
     return game_map
 
 
