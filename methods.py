@@ -452,7 +452,7 @@ MAP_NPCS = {
         "Scout Brin", "Vendor Tully", "Fan Jun", "Trainer Andre",
     ),
     "desert wastes": (
-        "Zahra the Guide", "Basim the Glassmaker", "Tarek the Waterkeeper", "Suri the Caravaner",
+        "Zahra the Guide", "Glassmaker", "Waterkeeper", "Suri the Caravaner",
     ),
     "ember mountain": (
         "Pyra the Forgekeeper", "Cinder the Courier", "Ash the Lookout", "Vela the Pilgrim",
