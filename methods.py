@@ -82,6 +82,24 @@ NPC_PERSONALITIES = {
         "Fan Jun": "chaotic and excited",
         "Trainer Oona": "disciplined and sharp",
     },
+    "desert wastes": {
+        "Zahra the Guide": "patient, resourceful, and desert-wise",
+        "Basim the Glassmaker": "inventive, meticulous, and proud",
+        "Tarek the Waterkeeper": "protective, quiet, and generous",
+        "Suri the Caravaner": "witty, quick-thinking, and fearless",
+    },
+    "ember mountain": {
+        "Pyra the Forgekeeper": "fiery, determined, and brilliant",
+        "Cinder the Courier": "restless, daring, and quick",
+        "Ash the Lookout": "cautious, observant, and loyal",
+        "Vela the Pilgrim": "hopeful, resolute, and spiritual",
+    },
+    "high cliffs": {
+        "Zeph the Falconer": "free-spirited, sharp-eyed, and patient",
+        "Orla the Skywatcher": "curious, calm, and far-seeing",
+        "Kest the Climber": "bold, competitive, and steady",
+        "Brann the Windsmith": "inventive, blunt, and dependable",
+    },
 }
 
 MONSTER_SPECIAL_ATTACKS = {
@@ -93,6 +111,14 @@ MONSTER_SPECIAL_ATTACKS = {
     "Leviathan": {"Tidal Crush": {"damage_factor": 2.0, "chance": 0.55}},
     "Megalodon": {"Abyssal Bite": {"damage_factor": 1.9, "chance": 0.45}},
     "Prime Kyle Walker": {"Titan Breaker": {"damage_factor": 2.2, "chance": 0.6}},
+    "Thornwolf": {"Briar Pounce": {"damage_factor": 1.6, "chance": 0.4}},
+    "Stone Golem": {"Quake Slam": {"damage_factor": 1.7, "chance": 0.35}},
+    "Frost Wraith": {"Glacial Touch": {"damage_factor": 1.7, "chance": 0.45}},
+    "Sand Wyrm": {"Dune Eruption": {"damage_factor": 1.8, "chance": 0.4}},
+    "Phoenix": {"Solar Flare": {"damage_factor": 1.7, "chance": 0.4}},
+    "Scorpion Queen": {"Venom Storm": {"damage_factor": 1.6, "chance": 0.45}},
+    "Sea Serpent": {"Tempest Coil": {"damage_factor": 1.8, "chance": 0.45}},
+    "Storm Roc": {"Thunder Dive": {"damage_factor": 1.75, "chance": 0.4}},
 }
 
 MONSTER_PERSONALITIES = {
@@ -104,6 +130,14 @@ MONSTER_PERSONALITIES = {
     "Leviathan": "massive, patient, and overwhelming",
     "Megalodon": "feral, savage, and instinct-driven",
     "Prime Kyle Walker": "confident, ruthless, and battle-smart",
+    "Thornwolf": "territorial, swift, and relentlessly cunning",
+    "Stone Golem": "ancient, unyielding, and slow to anger",
+    "Frost Wraith": "silent, chilling, and hungry for warmth",
+    "Sand Wyrm": "burrowing, patient, and devastating",
+    "Phoenix": "proud, radiant, and reborn from flame",
+    "Scorpion Queen": "calculating, venomous, and fiercely protective",
+    "Sea Serpent": "restless, cunning, and at home in the deep",
+    "Storm Roc": "majestic, tempestuous, and fiercely territorial",
 }
 
 
@@ -212,6 +246,129 @@ def get_monster_special_attack(monster_name: str):
     return {"name": attack_name, "details": details}
 
 
+def generate_narrative(scene: str, *, tone: str = "epic fantasy", player_name: str = "the hero", use_groq: bool = True) -> str:
+    """Generate a short fantasy narrative for the current scene, using Groq when available."""
+    cleaned_scene = (scene or "").strip()
+    if not cleaned_scene:
+        raise ValueError("Scene description cannot be empty.")
+
+    prompt = (
+        f"Write a vivid fantasy RPG scene in {tone} tone as exactly 5 short sentences "
+        "in one compact paragraph. Do not write an essay, title, or list. "
+        "Focus on atmosphere, tension, and a sense of momentum. "
+        f"Scene: {cleaned_scene}. "
+        f"Player: {player_name}. "
+        "Keep every sentence concise, immersive, and readable in plain English."
+    )
+
+    client = get_groq_client() if use_groq else None
+    if client is not None:
+        try:
+            response = client.chat.completions.create(
+                model=GROQ_MODEL,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You write concise fantasy RPG scenes in five short sentences, never essays.",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.9,
+                max_tokens=150,
+            )
+            text = response.choices[0].message.content.strip()
+            if text:
+                return text
+        except Exception:
+            pass
+
+    return (
+        f"{player_name.title()} steps into {cleaned_scene.lower()}, "
+        "where the air grows cold and the shadows stir. "
+        "A distant sound warns that something is close. "
+        "A faint light flickers somewhere beyond the trail. "
+        "The path ahead holds danger, but also the promise of discovery. "
+        "For now, every choice belongs to the traveler."
+    )
+
+
+def generate_story(
+    player_name: str,
+    monster_names: list[str],
+    *,
+    use_groq: bool = True,
+) -> str:
+    """Generate a fresh campaign opening that fits this run's monster order."""
+    if not player_name.strip():
+        raise ValueError("Player name cannot be empty.")
+    if not monster_names or any(not name.strip() for name in monster_names):
+        raise ValueError("At least one valid monster name is required.")
+
+    monster_order = " -> ".join(monster_names)
+    client = get_groq_client() if use_groq else None
+    if client is not None:
+        try:
+            response = client.chat.completions.create(
+                model=GROQ_MODEL,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You write original fantasy RPG openings in five concise sentences, "
+                            "never essays."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": (
+                            f"Write a fresh opening for {player_name}'s fantasy adventure as "
+                            "exactly 5 short sentences in one compact paragraph. Do not write "
+                            "an essay, title, or list. Set up a changing journey that culminates "
+                            "in a final boss. The enemies, in their actual encounter order, are: "
+                            f"{monster_order}. Do not list them mechanically; weave a few "
+                            "naturally into the story and end with the adventure beginning. "
+                            "Keep each sentence concise."
+                        ),
+                    },
+                ],
+                temperature=0.95,
+                max_tokens=150,
+            )
+            text = response.choices[0].message.content.strip()
+            if text:
+                return text
+        except Exception:
+            pass
+
+    opening = random.choice((
+        "A rain-streaked map appears at your door, its ink shifting whenever lightning flashes.",
+        "At dawn, a bell rings from a kingdom whose towers have been silent for a hundred years.",
+        "A traveling storyteller leaves behind a warning: the old roads have started leading somewhere new.",
+    ))
+    turn = random.choice((
+        f" {player_name} follows its first clue and finds {monster_names[0]} guarding the way.",
+        f" The journey begins when {player_name} encounters {monster_names[0]} on a road that was not there yesterday.",
+        f" Before the sun sets, {player_name} must face {monster_names[0]} and discover why the land is changing.",
+    ))
+    ending = random.choice((
+        f" Far beyond that first danger, {monster_names[-1]} waits at the end of the trail.",
+        f" Each victory will uncover another piece of the mystery, leading at last to {monster_names[-1]}.",
+        f" The clues point toward a final reckoning with {monster_names[-1]}, but the path between is unknown.",
+    ))
+    second_monster = monster_names[1] if len(monster_names) > 1 else monster_names[0]
+    middle = random.choice((
+        f" An old map warns that {second_monster} guards the next clue.",
+        f" Rumors of {second_monster} have begun to spread through the nearby villages.",
+        f" The first clue points toward a dangerous meeting with {second_monster}.",
+    ))
+    resolve = random.choice((
+        "The roads shift without warning, and no two travelers tell the same story.",
+        "Strange signs mark the route, as if the world itself is rearranging the journey.",
+        "Each choice will change what waits along the road ahead.",
+    ))
+    return opening + middle + turn + resolve + ending
+
+
 def decide_monster_attack(monster, player, *, use_groq: bool = True):
     """Choose a monster action dynamically, with Groq fallback."""
     monster_name = monster.name
@@ -294,15 +451,27 @@ MAP_NPCS = {
         "Announcer Vale", "Coach Rhea", "Medic Sol", "Referee Kade",
         "Scout Brin", "Vendor Tully", "Fan Jun", "Trainer Oona",
     ),
+    "desert wastes": (
+        "Zahra the Guide", "Basim the Glassmaker", "Tarek the Waterkeeper", "Suri the Caravaner",
+    ),
+    "ember mountain": (
+        "Pyra the Forgekeeper", "Cinder the Courier", "Ash the Lookout", "Vela the Pilgrim",
+    ),
+    "high cliffs": (
+        "Zeph the Falconer", "Orla the Skywatcher", "Kest the Climber", "Brann the Windsmith",
+    ),
 }
 
 MAP_MONSTERS = {
-    "forest clearing": ("Skeleton", "Green Dragon"),
-    "crystal cave": ("Crystal Dragon", "Red Dragon"),
-    "roadside camp": ("Headless Horseman", "Skeleton"),
-    "shoreline": ("Leviathan", "Megalodon"),
-    "harbor": ("Green Dragon", "Red Dragon"),
+    "forest clearing": ("Skeleton", "Green Dragon", "Thornwolf"),
+    "crystal cave": ("Crystal Dragon", "Red Dragon", "Stone Golem", "Frost Wraith"),
+    "roadside camp": ("Headless Horseman", "Skeleton", "Stone Golem"),
+    "shoreline": ("Leviathan", "Megalodon", "Sea Serpent"),
+    "harbor": ("Green Dragon", "Red Dragon", "Sea Serpent"),
     "stadium": ("Prime Kyle Walker", "Skeleton"),
+    "desert wastes": ("Sand Wyrm", "Scorpion Queen"),
+    "ember mountain": ("Phoenix", "Red Dragon"),
+    "high cliffs": ("Storm Roc", "Thornwolf"),
 }
 
 
@@ -320,6 +489,70 @@ attributes = (
 )
 permanent_boosts = {"Tier 1": 1.15, "Tier 2": 1.30, "Tier 3": 1.40}
 possible_shop_items = ("HP", "Strength", "X2Stats")
+wood_chest = ["100G", "200G", "500G", "HP"]
+wood_prob = [0.60, 0.20, 0.13, 0.07]
+silver_chest = ["250G", "500G", "1000G", "HP", "STRENGTH", "X2Stats"]
+silver_prob = [0.199, 0.50, 0.15, 0.10, 0.05, 0.001]
+gold_chest = [
+    "1000G", "2500G", "5000G", "HP", "STRENGTH", "X2Stats",
+    str(permanent_boosts["Tier 1"]),
+    str(permanent_boosts["Tier 2"]),
+    str(permanent_boosts["Tier 3"]),
+]
+gold_prob = [0.10, 0.20, 0.18, 0.14, 0.12, 0.10, 0.07, 0.06, 0.03]
+chest_dict = {
+    "wood": (wood_chest, wood_prob),
+    "silver": (silver_chest, silver_prob),
+    "gold": (gold_chest, gold_prob),
+}
+CHEST_SPAWN_PROBABILITY = 0.7
+CHEST_TYPE_WEIGHTS = {"wood": 0.65, "silver": 0.27, "gold": 0.08}
+EXPLORATION_CHANCE = 0.75
+EXPLORATION_EVENTS = (
+    {
+        "kind": "spring",
+        "scene": "a hidden spring beside the trail",
+        "prompt": "Drink from the spring and rest? (y/n): ",
+    },
+    {
+        "kind": "cache",
+        "scene": "a supply cache half-buried beneath fallen leaves",
+        "prompt": "Search the cache? (y/n): ",
+    },
+    {
+        "kind": "traveler",
+        "scene": "a stranded traveler asking for help",
+        "prompt": "Help the traveler? (y/n): ",
+    },
+    {
+        "kind": "shrine",
+        "scene": "an ancient shrine with a faintly glowing rune",
+        "prompt": "Touch the rune? (y/n): ",
+    },
+    {
+        "kind": "shortcut",
+        "scene": "a narrow shortcut crossing unstable ground",
+        "prompt": "Risk the shortcut for a chance at treasure? (y/n): ",
+    },
+)
+
+
+def roll_chest_name() -> str | None:
+    """Randomly decide whether a chest appears and, if so, its rarity."""
+    if random.random() >= CHEST_SPAWN_PROBABILITY:
+        return None
+    names = tuple(CHEST_TYPE_WEIGHTS)
+    weights = tuple(CHEST_TYPE_WEIGHTS[name] for name in names)
+    return random.choices(names, weights=weights, k=1)[0]
+
+
+def roll_exploration_event() -> dict[str, str] | None:
+    """Randomly choose an optional exploration event."""
+    if random.random() >= EXPLORATION_CHANCE:
+        return None
+    return random.choice(EXPLORATION_EVENTS)
+
+
 flee_probabilities = {
     "Skeleton": 0.8,
     "Red Dragon": 0.75,
@@ -329,6 +562,14 @@ flee_probabilities = {
     "Green Dragon": 0.60,
     "Leviathan": 0.10,
     "Megalodon": 0.20,
+    "Thornwolf": 0.55,
+    "Stone Golem": 0.08,
+    "Frost Wraith": 0.25,
+    "Sand Wyrm": 0.15,
+    "Phoenix": 0.20,
+    "Scorpion Queen": 0.35,
+    "Sea Serpent": 0.12,
+    "Storm Roc": 0.3,
 }
 
 
@@ -375,6 +616,14 @@ Red_Dragon = Monster("Red Dragon", 120, 25, 15, 0.10, 25)
 Headless_Horseman = Monster("Headless Horseman", 130, 30, 25, 0.15, 30)
 Leviathan = Monster("Leviathan", 200, 35, 10, 0.10, 35)
 Megalodon = Monster("Megalodon", 180, 30, 25, 0.20, 30)
+Thornwolf = Monster("Thornwolf", 70, 16, 25, 0.25, 14)
+Stone_Golem = Monster("Stone Golem", 180, 35, 5, 0.05, 30)
+Frost_Wraith = Monster("Frost Wraith", 110, 24, 28, 0.20, 21)
+Sand_Wyrm = Monster("Sand Wyrm", 150, 30, 18, 0.15, 26)
+Phoenix = Monster("Phoenix", 135, 28, 30, 0.18, 25)
+Scorpion_Queen = Monster("Scorpion Queen", 125, 26, 20, 0.17, 23)
+Sea_Serpent = Monster("Sea Serpent", 170, 32, 22, 0.12, 29)
+Storm_Roc = Monster("Storm Roc", 160, 31, 34, 0.22, 28)
 
 list_of_monsters = [
     Skeleton,
@@ -385,6 +634,14 @@ list_of_monsters = [
     Headless_Horseman,
     Leviathan,
     Megalodon,
+    Thornwolf,
+    Stone_Golem,
+    Frost_Wraith,
+    Sand_Wyrm,
+    Phoenix,
+    Scorpion_Queen,
+    Sea_Serpent,
+    Storm_Roc,
 ]
 
 
@@ -447,14 +704,14 @@ def shop(price: float, selected_item: str, input_fn: Callable[[str], str] | None
     if price < 0:
         raise ValueError("Price cannot be negative.")
     read_input = input if input_fn is None else input_fn
-    answer = formatted(read_input(f"Buy {selected_item} for {price} coins? (y/n): "))
-    if answer == "y":
-        return {"item": selected_item, "price": float(price)}
-    if answer == "n":
-        print("Continuing...")
-        return None
-    print("Please answer y or n.")
-    return None
+    while True:
+        answer = formatted(read_input(f"Buy {selected_item} for {price} coins? (y/n): "))
+        if answer in ("y", "yes"):
+            return {"item": selected_item, "price": float(price)}
+        if answer in ("n", "no"):
+            print("Continuing...")
+            return None
+        print("Please answer y or n.")
 
 
 def save_character(character, file_name: str) -> None:

@@ -19,6 +19,7 @@ class InvalidInputError(ValueError):
 SPECIAL_ATTACKS = {
     "Poison": {"price": 150, "aftershock_damage": 5},
 }
+CAMPAIGN_ENCOUNTERS = 8
 
 
 def special_attack(name: str):
@@ -50,6 +51,9 @@ class VideoGame:
     MAX_STRENGTH = 20
     LEVEL_UP_COINS=250
     POISON_AFTERSHOCK_DAMAGE=5
+    LEVEL_UP_ATTACK_BONUS = 2
+    LEVEL_UP_DEFENSE_BONUS = 2
+    LEVEL_UP_STRENGTH_BONUS = 1
 
     def __init__(self, health=100, strength=10, speed=10, name="Player",
                  coins=0, attack_power=10, defense=5):
@@ -74,10 +78,16 @@ class VideoGame:
 
         self.level += 1
         self.coins += self.LEVEL_UP_COINS
+        self.attack_power += self.LEVEL_UP_ATTACK_BONUS
+        self.defense += self.LEVEL_UP_DEFENSE_BONUS
+        self.strength = min(
+            self.MAX_STRENGTH, self.strength + self.LEVEL_UP_STRENGTH_BONUS
+        )
         self.health = self.MAX_HEALTH
         print(
             f"{self.name} reached level {self.level}! "
-            f"Gained {self.LEVEL_UP_COINS} coins and restored health to {self.MAX_HEALTH}."
+            f"Gained {self.LEVEL_UP_COINS} coins, improved combat stats, "
+            f"and restored health to {self.MAX_HEALTH}."
         )
         return True
 
@@ -169,8 +179,10 @@ def ask_yes_no(prompt: str) -> bool:
     """Prompt until the player enters y or n."""
     while True:
         answer = methods.formatted(input(prompt))
-        if answer in ("y", "n"):
-            return answer == "y"
+        if answer in ("y", "yes"):
+            return True
+        if answer in ("n", "no"):
+            return False
         print("Please enter y or n.")
 
 
@@ -330,6 +342,10 @@ def apply_reward(player: VideoGame, reward: str) -> None:
     elif reward == "X2Stats":
         player.attack_power *= 2
         print("Attack power doubled.")
+    elif reward in {str(boost) for boost in methods.permanent_boosts.values()}:
+        multiplier = float(reward)
+        player.attack_power *= multiplier
+        print(f"Attack power permanently increased by {multiplier - 1:.0%}.")
     else:
         print(f"Reward {reward!r} is not implemented yet.")
 
@@ -389,40 +405,155 @@ def game_is_active(player: VideoGame) -> bool:
 def offer_chest(player: VideoGame, chest_name: str) -> None:
     """Offer a chest and apply its reward if the player opens it."""
     chest, probability = methods.chest_dict[chest_name]
-    if ask_yes_no(f"Open the {chest_name} chest? (y/n): "):
+    display_name = "wooden" if chest_name == "wood" else chest_name
+    if ask_yes_no(f"Open the {display_name} chest? (y/n): "):
         apply_reward(player, methods.open_chest(chest, probability))
 
 
-def show_map(map_name: str) -> methods.GameMap:
-    """Instantiate a map and show the NPCs currently there."""
+def offer_random_chest(player: VideoGame) -> None:
+    """Offer a randomly spawned chest, if one appears after the encounter."""
+    chest_name = methods.roll_chest_name()
+    if chest_name is None:
+        print("No chest appears nearby this time.")
+        return
+    display_name = "wooden" if chest_name == "wood" else chest_name
+    print(f"You discover a {display_name} chest!")
+    offer_chest(player, chest_name)
+
+
+def run_exploration(player: VideoGame, destination: str) -> VideoGame:
+    """Offer a random exploration event between encounters."""
+    event = methods.roll_exploration_event()
+    if event is None:
+        print(f"\nThe trail to {destination.title()} is quiet.")
+        return player
+
+    print(f"\nOn the way to {destination.title()}...")
+    scene = f"{event['scene']} on the road to {destination.title()}"
+    print(methods.generate_narrative(
+        scene, tone="adventurous fantasy", player_name=player.name
+    ))
+    if not ask_yes_no(event["prompt"]):
+        print("You leave the discovery behind and continue onward.")
+        return player
+
+    if event["kind"] == "spring":
+        healing = random.randint(20, 35)
+        player.health = min(VideoGame.MAX_HEALTH, player.health + healing)
+        print(f"You rest at the spring and recover health to {player.health}.")
+    elif event["kind"] == "cache":
+        if random.random() < 0.7:
+            apply_reward(player, random.choice(("100G", "200G", "500G")))
+        else:
+            damage = random.randint(8, 18)
+            print("A hidden snare springs from the cache!")
+            player.take_damage(damage)
+    elif event["kind"] == "traveler":
+        reward = random.choice(("HP", "100G", "Strength"))
+        print("The traveler thanks you with a small reward.")
+        apply_reward(player, reward)
+    elif event["kind"] == "shrine":
+        if random.random() < 0.5:
+            player.attack_power += 2
+            print("The rune sharpens your attacks. Attack power increased by 2.")
+        else:
+            player.defense += 1
+            print("The rune hardens your resolve. Defense increased by 1.")
+    elif event["kind"] == "shortcut":
+        if random.random() < 0.5:
+            apply_reward(player, "250G")
+        else:
+            damage = random.randint(10, 25)
+            print("The unstable path gives way beneath you!")
+            player.take_damage(damage)
+    else:
+        raise ValueError(f"Unknown exploration event: {event['kind']}")
+
+    return player
+
+
+def show_map(
+    map_name: str,
+    *,
+    player_name: str = "the hero",
+    monster_name: str | None = None,
+    show_npcs: bool = True,
+) -> methods.GameMap:
+    """Introduce a map with narrative and optionally display its NPCs."""
     game_map = methods.create_map(map_name)
     print(f"\nYou arrive at {game_map.name}.")
+    scene = f"the {game_map.name.lower()}"
+    if monster_name:
+        scene += f", with {monster_name} blocking the way"
+    print(methods.generate_narrative(scene, player_name=player_name))
+    if show_npcs:
+        show_npcs_on_map(game_map, map_name)
+    return game_map
+
+
+def show_npcs_on_map(game_map: methods.GameMap, map_name: str) -> None:
+    """Show the local NPCs outside of an active battle."""
+    print("\nPeople nearby:")
     for npc in game_map.npcs:
         print(f"  - {methods.describe_npc(npc, map_name)}")
-    return game_map
 
 
 def run_adventure_stage(
     player: VideoGame,
     monster_name: str,
-    chest_name: str,
-    rest_name: str,
     map_name: str,
 ) -> tuple[VideoGame, bool]:
-    """Run an encounter followed by its optional chest and rest stop."""
-    show_map(map_name)
+    """Run an encounter followed by a chance chest and optional rest stop."""
+    game_map = show_map(
+        map_name, player_name=player.name, monster_name=monster_name, show_npcs=False
+    )
     if not run_encounter(player, methods.create_monster(monster_name)):
         return player, False
     if not game_is_active(player):
         return player, False
 
-    offer_chest(player, chest_name)
+    show_npcs_on_map(game_map, map_name)
+    offer_random_chest(player)
     if not game_is_active(player):
         return player, False
 
-    if ask_yes_no(f"Rest at {rest_name}? (y/n): "):
+    if ask_yes_no(f"Rest at {game_map.name}? (y/n): "):
         player = run_menu(player)
     return player, game_is_active(player)
+
+
+def create_adventure_stages(route: int) -> list[tuple[str, str]]:
+    """Build a longer route with a randomized, non-repeating set of monsters."""
+    route_monsters = {
+        1: ("Skeleton", "Green Dragon"),
+        2: ("Crystal Dragon", "Red Dragon"),
+    }
+    if route not in route_monsters:
+        raise ValueError("Route must be 1 or 2.")
+
+    required_monsters = route_monsters[route]
+    candidates = [
+        monster.name
+        for monster in methods.list_of_monsters
+        if monster.name not in (*required_monsters, "Prime Kyle Walker")
+    ]
+    selected_monsters = list(required_monsters)
+    selected_monsters.extend(
+        random.sample(candidates, CAMPAIGN_ENCOUNTERS - len(selected_monsters))
+    )
+    random.shuffle(selected_monsters)
+
+    stages = []
+    for monster_name in selected_monsters:
+        possible_maps = [
+            map_name
+            for map_name, monster_names in methods.MAP_MONSTERS.items()
+            if monster_name in monster_names and map_name != "stadium"
+        ]
+        if not possible_maps:
+            raise ValueError(f"No map is configured for {monster_name}.")
+        stages.append((monster_name, random.choice(possible_maps)))
+    return stages
 
 
 def run_menu(player: VideoGame) -> VideoGame:
@@ -458,68 +589,57 @@ def run_menu(player: VideoGame) -> VideoGame:
 def main() -> None:
     """Start the RPG adventure."""
     player = create_character_instance()
-    print(f"Welcome, {player.name}! You venture through a vast forest.")
+    print(f"Welcome, {player.name}!")
 
-    print("Path 1: A forest clearing where skeletons gather.")
-    print("Path 2: A cave where a crystal dragon guards a chest.")
+    print("Path 1: The forest route, haunted by Skeletons and a Green Dragon.")
+    print("Path 2: The cave route, guarded by a Crystal Dragon and a Red Dragon.")
 
     while True:
         try:
             chosen_path = int(input("Choose path 1 or 2: "))
             if chosen_path == 1:
-                first_monster = "Skeleton"
-                first_map = "forest clearing"
                 break
             elif chosen_path == 2:
-                first_monster = "Crystal Dragon"
-                first_map = "crystal cave"
                 break
             else:
                 print("Choose either path 1 or path 2.")
         except ValueError:
             print("Choose either path 1 or path 2.")
 
-    player, adventure_active = run_adventure_stage(
-        player, first_monster, "wood", "the boulder", first_map
-    )
+    adventure_stages = create_adventure_stages(chosen_path)
+    monster_order = [monster_name for monster_name, _ in adventure_stages]
+    monster_order.append("Prime Kyle Walker")
+    print()
+    print(methods.generate_story(player.name, monster_order))
+    print()
 
-    if adventure_active:
-        if chosen_path == 1:
-            print("You continue through the forest and face the Green Dragon.")
-            player, adventure_active = run_adventure_stage(
-                player, "Green Dragon", "wood", "the forest clearing", "forest clearing"
+    adventure_active = True
+    for index, stage in enumerate(adventure_stages):
+        if not adventure_active:
+            break
+        monster_name, map_name = stage
+        player, adventure_active = run_adventure_stage(
+            player, monster_name, map_name
+        )
+        if adventure_active:
+            next_map = (
+                adventure_stages[index + 1][1]
+                if index + 1 < len(adventure_stages)
+                else "stadium"
             )
-        elif chosen_path == 2:
-            print("You venture deeper into the cave and face the Red Dragon.")
-            player, adventure_active = run_adventure_stage(
-                player, "Red Dragon", "wood", "the cave entrance", "crystal cave"
-            )
-        else:
-            raise InvalidInputError("Choose either path 1 or path 2.")
-
-    if adventure_active:
-        print("The Headless Horseman blocks your path.")
-        player, adventure_active = run_adventure_stage(
-            player, "Headless Horseman", "silver", "the roadside camp", "roadside camp"
-        )
-
-    if adventure_active:
-        print("A Megalodon emerges from the water.")
-        player, adventure_active = run_adventure_stage(
-            player, "Megalodon", "gold", "the shoreline", "shoreline"
-        )
-
-    if adventure_active:
-        print("The Leviathan rises for a boss fight.")
-        player, adventure_active = run_adventure_stage(
-            player, "Leviathan", "gold", "the harbor", "harbor"
-        )
+            player = run_exploration(player, next_map)
+            adventure_active = game_is_active(player)
 
     if adventure_active:
         print("You reach the stadium for the final boss fight against Prime Kyle Walker.")
-        show_map("stadium")
+        stadium = show_map(
+            "stadium", player_name=player.name, monster_name="Prime Kyle Walker",
+            show_npcs=False,
+        )
         if fight(player, methods.create_monster("Prime Kyle Walker")):
             print("You defeated the final boss!")
+            show_npcs_on_map(stadium, "stadium")
+            offer_random_chest(player)
 
     if not game_is_active(player):
         print("Game over.")

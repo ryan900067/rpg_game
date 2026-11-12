@@ -15,6 +15,14 @@ Biomes
 NPCs
 Special Monsters for each biome
 Progression
+Eight randomized encounters per run, followed by the final boss
+Wood, silver, and gold chests that spawn at random
+Random exploration events between battles, with optional risks and rewards
+
+Groq-powered features:
+- NPC personality generation
+- Monster tactical decisions
+- A new campaign opening and five-sentence scene narration for each run
 
 
 
