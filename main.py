@@ -20,6 +20,13 @@ SPECIAL_ATTACKS = {
     "Poison": {"price": 150, "aftershock_damage": 5},
 }
 CAMPAIGN_ENCOUNTERS = 8
+CAMPAIGN_ROUTE_BIOMES = {
+    1: ("Verdant Forest", "Open Road", "Coastal Reach"),
+    2: (
+        "Crystal Highlands", "Ember Foothills", "Windscar Cliffs",
+        "Sunscorch Desert",
+    ),
+}
 
 
 def special_attack(name: str):
@@ -68,6 +75,7 @@ class VideoGame:
         self.attack_power = float(attack_power)
         self.defense = float(defense)
         self.inventory = []
+        self.active_quest = None
      
 
     def level_up(self) -> bool:
@@ -105,9 +113,18 @@ class VideoGame:
         return remaining_health
 
     def __str__(self):
-        return (f"Name: {self.name}\nHealth: {self.health}\nStrength: {self.strength}\n"
-                f"Speed: {self.speed}\nLevel: {self.level}\nCoins: {self.coins}\n"
-                f"Attack power: {self.attack_power:g}\nDefense: {self.defense:g}")
+        stats = (
+            f"Name: {self.name}\nHealth: {self.health}\nStrength: {self.strength}\n"
+            f"Speed: {self.speed}\nLevel: {self.level}\nCoins: {self.coins}\n"
+            f"Attack power: {self.attack_power:g}\nDefense: {self.defense:g}"
+        )
+        if self.active_quest is not None:
+            quest = self.active_quest
+            stats += (
+                f"\nActive quest: {quest['giver']} - defeat {quest['goal']} monsters "
+                f"({quest['progress']}/{quest['goal']}) for {quest['reward']} coins"
+            )
+        return stats
 
 
 def create_character_instance() -> VideoGame:
@@ -171,6 +188,28 @@ def load_character_instance(file_name: str) -> VideoGame:
         raise ValueError("Saved inventory must be a list.")
     character.level = level
     character.inventory = inventory
+    active_quest = data.get("active_quest")
+    if active_quest is not None:
+        if not isinstance(active_quest, dict):
+            raise ValueError("Saved quest must be a dictionary.")
+        giver = active_quest.get("giver")
+        goal = active_quest.get("goal")
+        progress = active_quest.get("progress")
+        reward = active_quest.get("reward")
+        if (
+            not isinstance(giver, str)
+            or not isinstance(goal, int)
+            or isinstance(goal, bool)
+            or goal < 1
+            or not isinstance(progress, int)
+            or isinstance(progress, bool)
+            or not 0 <= progress < goal
+            or not isinstance(reward, int)
+            or isinstance(reward, bool)
+            or reward < 0
+        ):
+            raise ValueError("Saved quest data is invalid.")
+        character.active_quest = active_quest
     print(f"Loaded character {character.name} from {path}.")
     return character
 
@@ -259,6 +298,7 @@ def fight(player: VideoGame, monster: methods.Monster) -> bool:
     if player.health > 0:
         print(f"You defeated the {monster.name}!")
         player.level_up()
+        record_quest_victory(player)
         return True
 
     print("You were defeated.")
@@ -339,6 +379,26 @@ def apply_reward(player: VideoGame, reward: str) -> None:
             print(f"Strength increased by {strength_increase}.")
         else:
             print(f"Strength is already at the maximum ({VideoGame.MAX_STRENGTH}).")
+    elif reward.upper() == "ELIXIR":
+        restored = VideoGame.MAX_HEALTH - player.health
+        player.health = VideoGame.MAX_HEALTH
+        print(f"The elixir restores {restored} health.")
+    elif reward.upper() == "IRONSKIN":
+        player.defense += 2
+        print("Your skin hardens. Defense increased by 2.")
+    elif reward.upper() == "BATTLEFOCUS":
+        player.attack_power += 5
+        print("Battle focus sharpens your strikes. Attack power increased by 5.")
+    elif reward in SPECIAL_ATTACKS:
+        if reward in player.inventory:
+            player.coins += SPECIAL_ATTACKS[reward]["price"]
+            print(
+                f"You already know {reward}; it converts to "
+                f"{SPECIAL_ATTACKS[reward]['price']} coins."
+            )
+        else:
+            player.inventory.append(reward)
+            print(f"Learned the {reward} special attack.")
     elif reward == "X2Stats":
         player.attack_power *= 2
         print("Attack power doubled.")
@@ -481,8 +541,10 @@ def show_map(
 ) -> methods.GameMap:
     """Introduce a map with narrative and optionally display its NPCs."""
     game_map = methods.create_map(map_name)
-    print(f"\nYou arrive at {game_map.name}.")
-    scene = f"the {game_map.name.lower()}"
+    print(f"\nYou arrive at {game_map.name}, in the {game_map.biome}.")
+    if game_map.nearby_areas:
+        print(f"Trails lead toward: {', '.join(game_map.nearby_areas)}.")
+    scene = f"{game_map.name.lower()} in the {game_map.biome.lower()}"
     if monster_name:
         scene += f", with {monster_name} blocking the way"
     print(methods.generate_narrative(scene, player_name=player_name))
@@ -496,6 +558,52 @@ def show_npcs_on_map(game_map: methods.GameMap, map_name: str) -> None:
     print("\nPeople nearby:")
     for npc in game_map.npcs:
         print(f"  - {methods.describe_npc(npc, map_name)}")
+
+
+def offer_npc_quest(player: VideoGame, game_map: methods.GameMap) -> None:
+    """Offer a short monster-hunt quest from a local NPC."""
+    if player.active_quest is not None:
+        quest = player.active_quest
+        print(
+            f"{quest['giver']}'s bounty: defeat {quest['goal']} monsters "
+            f"({quest['progress']}/{quest['goal']}); reward: {quest['reward']} coins."
+        )
+        return
+
+    giver = random.choice(game_map.npcs)
+    goal = random.randint(1, 2)
+    reward = goal * 250
+    print(
+        f"\n{giver} offers a bounty: defeat {goal} monster"
+        f"{'s' if goal != 1 else ''} for {reward} coins."
+    )
+    if ask_yes_no("Accept the bounty? (y/n): "):
+        player.active_quest = {
+            "giver": giver,
+            "goal": goal,
+            "progress": 0,
+            "reward": reward,
+        }
+        print("Bounty accepted. Your next victories will count toward it.")
+
+
+def record_quest_victory(player: VideoGame) -> None:
+    """Advance the active bounty and pay it when complete."""
+    quest = player.active_quest
+    if quest is None:
+        return
+    quest["progress"] += 1
+    print(
+        f"Bounty progress: {quest['progress']}/{quest['goal']} "
+        f"monsters defeated."
+    )
+    if quest["progress"] >= quest["goal"]:
+        player.coins += quest["reward"]
+        print(
+            f"{quest['giver']} pays you {quest['reward']} coins for completing "
+            "the bounty!"
+        )
+        player.active_quest = None
 
 
 def run_adventure_stage(
@@ -513,6 +621,7 @@ def run_adventure_stage(
         return player, False
 
     show_npcs_on_map(game_map, map_name)
+    offer_npc_quest(player, game_map)
     offer_random_chest(player)
     if not game_is_active(player):
         return player, False
@@ -523,36 +632,132 @@ def run_adventure_stage(
 
 
 def create_adventure_stages(route: int) -> list[tuple[str, str]]:
-    """Build a longer route with a randomized, non-repeating set of monsters."""
+    """Build a biome-based route through randomized monsters and outdoor areas."""
     route_monsters = {
         1: ("Skeleton", "Green Dragon"),
         2: ("Crystal Dragon", "Red Dragon"),
     }
-    if route not in route_monsters:
+    if route not in route_monsters or route not in CAMPAIGN_ROUTE_BIOMES:
         raise ValueError("Route must be 1 or 2.")
 
-    required_monsters = route_monsters[route]
-    candidates = [
-        monster.name
-        for monster in methods.list_of_monsters
-        if monster.name not in (*required_monsters, "Prime Kyle Walker")
-    ]
-    selected_monsters = list(required_monsters)
-    selected_monsters.extend(
-        random.sample(candidates, CAMPAIGN_ENCOUNTERS - len(selected_monsters))
-    )
-    random.shuffle(selected_monsters)
+    route_biomes = CAMPAIGN_ROUTE_BIOMES[route]
+    monsters_by_biome = {
+        biome: {
+            monster_name
+            for area in methods.BIOME_AREAS[biome]
+            for monster_name in methods.MAP_MONSTERS[area]
+            if monster_name != "Prime Kyle Walker"
+        }
+        for biome in route_biomes
+    }
+    selected_monsters = []
+    assigned_stages = []
+
+    for monster_name in route_monsters[route]:
+        compatible_biomes = [
+            biome for biome in route_biomes
+            if monster_name in monsters_by_biome[biome]
+        ]
+        if not compatible_biomes:
+            raise ValueError(f"No route biome is configured for {monster_name}.")
+        selected_monsters.append(monster_name)
+        assigned_stages.append((monster_name, compatible_biomes[0]))
+
+    for biome in route_biomes:
+        if any(stage_biome == biome for _, stage_biome in assigned_stages):
+            continue
+        candidates = sorted(monsters_by_biome[biome] - set(selected_monsters))
+        if not candidates:
+            raise ValueError(f"No unused monsters are configured for {biome}.")
+        monster_name = random.choice(candidates)
+        selected_monsters.append(monster_name)
+        assigned_stages.append((monster_name, biome))
+
+    biome_counts = {
+        biome: sum(stage_biome == biome for _, stage_biome in assigned_stages)
+        for biome in route_biomes
+    }
+    all_candidates = set().union(
+        *(monsters_by_biome[biome] for biome in route_biomes)
+    ) - set(selected_monsters)
+    while len(selected_monsters) < CAMPAIGN_ENCOUNTERS:
+        candidate_biomes = {
+            monster_name: [
+                biome for biome in route_biomes
+                if (
+                    monster_name in monsters_by_biome[biome]
+                    and biome_counts[biome] < len(methods.BIOME_AREAS[biome])
+                )
+            ]
+            for monster_name in all_candidates
+        }
+        candidate_biomes = {
+            monster_name: biomes
+            for monster_name, biomes in candidate_biomes.items()
+            if biomes
+        }
+        if not candidate_biomes:
+            raise ValueError("Not enough unique monsters and areas for this route.")
+        fewest_options = min(map(len, candidate_biomes.values()))
+        constrained_candidates = [
+            monster_name
+            for monster_name, biomes in candidate_biomes.items()
+            if len(biomes) == fewest_options
+        ]
+        monster_name = random.choice(constrained_candidates)
+        selected_biome = random.choice(candidate_biomes[monster_name])
+        assigned_stages.append((monster_name, selected_biome))
+        selected_monsters.append(monster_name)
+        all_candidates.remove(monster_name)
+        biome_counts[selected_biome] += 1
 
     stages = []
-    for monster_name in selected_monsters:
-        possible_maps = [
-            map_name
-            for map_name, monster_names in methods.MAP_MONSTERS.items()
-            if monster_name in monster_names and map_name != "stadium"
+    for biome in route_biomes:
+        biome_monsters = [
+            monster_name
+            for monster_name, stage_biome in assigned_stages
+            if stage_biome == biome
         ]
-        if not possible_maps:
-            raise ValueError(f"No map is configured for {monster_name}.")
-        stages.append((monster_name, random.choice(possible_maps)))
+        possible_areas = {
+            monster_name: [
+                area
+                for area in methods.BIOME_AREAS[biome]
+                if monster_name in methods.MAP_MONSTERS[area]
+            ]
+            for monster_name in biome_monsters
+        }
+        area_owners = {}
+        monster_areas = {}
+
+        def assign_area(monster_name: str, seen_areas: set[str]) -> bool:
+            for area in possible_areas[monster_name]:
+                if area in seen_areas:
+                    continue
+                seen_areas.add(area)
+                previous_owner = area_owners.get(area)
+                if previous_owner is None or assign_area(previous_owner, seen_areas):
+                    area_owners[area] = monster_name
+                    monster_areas[monster_name] = area
+                    return True
+            return False
+
+        for monster_name in sorted(
+            biome_monsters, key=lambda name: len(possible_areas[name])
+        ):
+            if (
+                not possible_areas[monster_name]
+                or not assign_area(monster_name, set())
+            ):
+                raise ValueError(f"No distinct area is available for {monster_name}.")
+
+        biome_stages = [
+            (monster_name, monster_areas[monster_name])
+            for monster_name in biome_monsters
+        ]
+        biome_stages.sort(
+            key=lambda stage: methods.BIOME_AREAS[biome].index(stage[1])
+        )
+        stages.extend(biome_stages)
     return stages
 
 
@@ -591,8 +796,14 @@ def main() -> None:
     player = create_character_instance()
     print(f"Welcome, {player.name}!")
 
-    print("Path 1: The forest route, haunted by Skeletons and a Green Dragon.")
-    print("Path 2: The cave route, guarded by a Crystal Dragon and a Red Dragon.")
+    print(
+        "Path 1: The Verdant Forest, Open Road, and Coastal Reach, "
+        "haunted by Skeletons and a Green Dragon."
+    )
+    print(
+        "Path 2: The Crystal Highlands, Ember Foothills, Windscar Cliffs, "
+        "and Sunscorch Desert, guarded by a Crystal Dragon and a Red Dragon."
+    )
 
     while True:
         try:

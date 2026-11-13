@@ -32,7 +32,7 @@ NPC_PERSONALITIES = {
         "Clover the Merchant": "calculating and charming",
         "Wren the Storyteller": "dramatic and poetic",
     },
-    "crystal cave": {
+    "crystal ridge": {
         "Neris the Geologist": "precise, analytical, and curious",
         "Durn the Miner": "brutal, blunt, and practical",
         "Ayla the Torchbearer": "brave and reassuring",
@@ -156,6 +156,8 @@ class ListError(ValueError):
 class GameMap:
     name: str
     npcs: tuple[str, ...]
+    biome: str = "Unknown"
+    nearby_areas: tuple[str, ...] = ()
 
 
 @dataclass
@@ -178,7 +180,11 @@ def get_npc_profile(npc_name: str, map_name: str) -> NPCProfile:
     """Return a structured profile for an NPC; use Groq if available."""
     normalized_name = npc_name.strip()
     normalized_map = formatted(map_name)
-    base_personality = NPC_PERSONALITIES.get(normalized_map, {}).get(normalized_name)
+    normalized_map = MAP_ALIASES.get(normalized_map, normalized_map)
+    profile_area = BIOME_PROFILE_AREAS.get(
+        MAP_BIOMES.get(normalized_map), normalized_map
+    )
+    base_personality = NPC_PERSONALITIES.get(profile_area, {}).get(normalized_name)
     if base_personality is None:
         # fallback if the NPC is not in the exact map data
         base_personality = "mysterious and unpredictable"
@@ -431,7 +437,7 @@ MAP_NPCS = {
         "Eldra the Herbalist", "Bram the Trapper", "Pip the Scout", "Moss the Forager",
         "Tamsin the Ranger", "Old Rowan", "Clover the Merchant", "Wren the Storyteller",
     ),
-    "crystal cave": (
+    "crystal ridge": (
         "Neris the Geologist", "Durn the Miner", "Ayla the Torchbearer", "Glim the Hermit",
         "Vey the Cartographer", "Orin the Smith", "Sable the Crystal Keeper", "Kett the Guide",
     ),
@@ -464,7 +470,7 @@ MAP_NPCS = {
 
 MAP_MONSTERS = {
     "forest clearing": ("Skeleton", "Green Dragon", "Thornwolf"),
-    "crystal cave": ("Crystal Dragon", "Red Dragon", "Stone Golem", "Frost Wraith"),
+    "crystal ridge": ("Crystal Dragon", "Red Dragon", "Stone Golem", "Frost Wraith"),
     "roadside camp": ("Headless Horseman", "Skeleton", "Stone Golem"),
     "shoreline": ("Leviathan", "Megalodon", "Sea Serpent"),
     "harbor": ("Green Dragon", "Red Dragon", "Sea Serpent"),
@@ -474,14 +480,100 @@ MAP_MONSTERS = {
     "high cliffs": ("Storm Roc", "Thornwolf"),
 }
 
+BIOME_AREAS = {
+    "Verdant Forest": (
+        "forest clearing", "fern meadow", "mosswood trail", "ancient grove",
+    ),
+    "Crystal Highlands": (
+        "crystal ridge", "shard plains", "prism basin", "frostbreak plateau",
+    ),
+    "Coastal Reach": (
+        "shoreline", "tidal flats", "salt marsh", "sea cliffs", "harbor",
+    ),
+    "Open Road": ("roadside camp", "rolling grassland", "old stone road"),
+    "Sunscorch Desert": ("desert wastes", "dune sea", "sunstone oasis"),
+    "Ember Foothills": ("ember mountain", "ashen foothills", "cinder fields"),
+    "Windscar Cliffs": ("high cliffs", "windward ledge", "falcon perch"),
+    "Stadium Grounds": ("stadium",),
+}
+MAP_BIOMES = {
+    area: biome
+    for biome, areas in BIOME_AREAS.items()
+    for area in areas
+}
+MAP_ALIASES = {"crystal cave": "crystal ridge"}
+BIOME_PROFILE_AREAS = {
+    "Verdant Forest": "forest clearing",
+    "Crystal Highlands": "crystal ridge",
+    "Coastal Reach": "shoreline",
+    "Open Road": "roadside camp",
+    "Sunscorch Desert": "desert wastes",
+    "Ember Foothills": "ember mountain",
+    "Windscar Cliffs": "high cliffs",
+    "Stadium Grounds": "stadium",
+}
+
+MAP_NPCS.update({
+    "fern meadow": MAP_NPCS["forest clearing"],
+    "mosswood trail": MAP_NPCS["forest clearing"],
+    "ancient grove": MAP_NPCS["forest clearing"],
+    "shard plains": MAP_NPCS["crystal ridge"],
+    "prism basin": MAP_NPCS["crystal ridge"],
+    "frostbreak plateau": MAP_NPCS["crystal ridge"],
+    "tidal flats": MAP_NPCS["shoreline"],
+    "salt marsh": MAP_NPCS["shoreline"],
+    "sea cliffs": MAP_NPCS["shoreline"],
+    "rolling grassland": MAP_NPCS["roadside camp"],
+    "old stone road": MAP_NPCS["roadside camp"],
+    "dune sea": MAP_NPCS["desert wastes"],
+    "sunstone oasis": MAP_NPCS["desert wastes"],
+    "ashen foothills": MAP_NPCS["ember mountain"],
+    "cinder fields": MAP_NPCS["ember mountain"],
+    "windward ledge": MAP_NPCS["high cliffs"],
+    "falcon perch": MAP_NPCS["high cliffs"],
+})
+MAP_MONSTERS.update({
+    "fern meadow": ("Skeleton", "Thornwolf", "Frost Wraith"),
+    "mosswood trail": ("Headless Horseman", "Skeleton", "Thornwolf"),
+    "ancient grove": ("Green Dragon", "Stone Golem", "Skeleton"),
+    "shard plains": ("Crystal Dragon", "Frost Wraith", "Storm Roc"),
+    "prism basin": ("Red Dragon", "Stone Golem", "Phoenix"),
+    "frostbreak plateau": ("Crystal Dragon", "Frost Wraith", "Storm Roc"),
+    "tidal flats": ("Megalodon", "Sea Serpent", "Scorpion Queen"),
+    "salt marsh": ("Leviathan", "Sea Serpent", "Scorpion Queen"),
+    "sea cliffs": ("Leviathan", "Storm Roc", "Sea Serpent"),
+    "rolling grassland": ("Thornwolf", "Storm Roc", "Skeleton"),
+    "old stone road": ("Headless Horseman", "Stone Golem", "Red Dragon"),
+    "dune sea": ("Sand Wyrm", "Scorpion Queen", "Thornwolf"),
+    "sunstone oasis": ("Sand Wyrm", "Phoenix", "Scorpion Queen"),
+    "ashen foothills": ("Phoenix", "Red Dragon", "Stone Golem"),
+    "cinder fields": ("Phoenix", "Red Dragon", "Frost Wraith"),
+    "windward ledge": ("Storm Roc", "Frost Wraith", "Thornwolf"),
+    "falcon perch": ("Storm Roc", "Red Dragon", "Phoenix"),
+})
+
 
 def create_map(name: str) -> GameMap:
     if not isinstance(name, str):
         raise TypeError("Map name must be a string.")
-    key = formatted(name)
+    normalized_name = formatted(name)
+    key = MAP_ALIASES.get(normalized_name, normalized_name)
     if key not in MAP_NPCS:
         raise ValueError(f"Unknown map: {name}")
-    return GameMap(name=key.title(), npcs=MAP_NPCS[key])
+    biome = MAP_BIOMES[key]
+    areas = BIOME_AREAS[biome]
+    area_index = areas.index(key)
+    nearby_areas = []
+    if area_index > 0:
+        nearby_areas.append(areas[area_index - 1].title())
+    if area_index + 1 < len(areas):
+        nearby_areas.append(areas[area_index + 1].title())
+    return GameMap(
+        name=key.title(),
+        npcs=MAP_NPCS[key],
+        biome=biome,
+        nearby_areas=tuple(nearby_areas),
+    )
 
 
 attributes = (
@@ -489,17 +581,24 @@ attributes = (
 )
 permanent_boosts = {"Tier 1": 1.15, "Tier 2": 1.30, "Tier 3": 1.40}
 possible_shop_items = ("HP", "Strength", "X2Stats")
-wood_chest = ["100G", "200G", "500G", "HP"]
-wood_prob = [0.60, 0.20, 0.13, 0.07]
-silver_chest = ["250G", "500G", "1000G", "HP", "STRENGTH", "X2Stats"]
-silver_prob = [0.199, 0.50, 0.15, 0.10, 0.05, 0.001]
+wood_chest = ["100G", "200G", "500G", "HP", "ELIXIR", "IRONSKIN"]
+wood_prob = [0.50, 0.18, 0.10, 0.12, 0.06, 0.04]
+silver_chest = [
+    "250G", "500G", "1000G", "HP", "STRENGTH", "X2Stats",
+    "ELIXIR", "IRONSKIN", "BATTLEFOCUS", "Poison",
+]
+silver_prob = [0.17, 0.35, 0.15, 0.10, 0.06, 0.02, 0.06, 0.05, 0.03, 0.01]
 gold_chest = [
     "1000G", "2500G", "5000G", "HP", "STRENGTH", "X2Stats",
     str(permanent_boosts["Tier 1"]),
     str(permanent_boosts["Tier 2"]),
     str(permanent_boosts["Tier 3"]),
+    "ELIXIR", "IRONSKIN", "BATTLEFOCUS", "Poison",
 ]
-gold_prob = [0.10, 0.20, 0.18, 0.14, 0.12, 0.10, 0.07, 0.06, 0.03]
+gold_prob = [
+    0.08, 0.16, 0.15, 0.10, 0.10, 0.10, 0.06, 0.05, 0.03,
+    0.06, 0.05, 0.04, 0.02,
+]
 chest_dict = {
     "wood": (wood_chest, wood_prob),
     "silver": (silver_chest, silver_prob),
