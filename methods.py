@@ -482,19 +482,19 @@ MAP_MONSTERS = {
 
 BIOME_AREAS = {
     "Verdant Forest": (
-        "forest clearing", "fern meadow", "mosswood trail", "ancient grove",
+        "forest clearing", "old road", "fern meadow", "mosswood trail", "ancient grove",
     ),
     "Crystal Highlands": (
-        "crystal ridge", "shard plains", "prism basin", "frostbreak plateau",
+        "crystal ridge", "shard plains", "prism basin", "frostbreak plateau", "glimmering pass",
     ),
     "Coastal Reach": (
-        "shoreline", "tidal flats", "salt marsh", "sea cliffs", "harbor",
+        "shoreline", "tidal flats", "salt marsh", "sea cliffs", "harbor", "wharf lookout",
     ),
-    "Open Road": ("roadside camp", "rolling grassland", "old stone road"),
-    "Sunscorch Desert": ("desert wastes", "dune sea", "sunstone oasis"),
-    "Ember Foothills": ("ember mountain", "ashen foothills", "cinder fields"),
-    "Windscar Cliffs": ("high cliffs", "windward ledge", "falcon perch"),
-    "Stadium Grounds": ("stadium",),
+    "Open Road": ("roadside camp", "rolling grassland", "sunlit crossing", "old stone road"),
+    "Sunscorch Desert": ("desert wastes", "dune sea", "sunstone oasis", "ruined caravan post"),
+    "Ember Foothills": ("ember mountain", "ashen foothills", "cinder fields", "forge pass"),
+    "Windscar Cliffs": ("high cliffs", "windward ledge", "falcon perch", "storm gap"),
+    "Stadium Grounds": ("stadium", "training yard", "east bleachers"),
 }
 MAP_BIOMES = {
     area: biome
@@ -514,42 +514,60 @@ BIOME_PROFILE_AREAS = {
 }
 
 MAP_NPCS.update({
+    "old road": MAP_NPCS["forest clearing"],
     "fern meadow": MAP_NPCS["forest clearing"],
     "mosswood trail": MAP_NPCS["forest clearing"],
     "ancient grove": MAP_NPCS["forest clearing"],
+    "glimmering pass": MAP_NPCS["crystal ridge"],
     "shard plains": MAP_NPCS["crystal ridge"],
     "prism basin": MAP_NPCS["crystal ridge"],
     "frostbreak plateau": MAP_NPCS["crystal ridge"],
+    "wharf lookout": MAP_NPCS["shoreline"],
     "tidal flats": MAP_NPCS["shoreline"],
     "salt marsh": MAP_NPCS["shoreline"],
     "sea cliffs": MAP_NPCS["shoreline"],
     "rolling grassland": MAP_NPCS["roadside camp"],
+    "sunlit crossing": MAP_NPCS["roadside camp"],
     "old stone road": MAP_NPCS["roadside camp"],
+    "ruined caravan post": MAP_NPCS["desert wastes"],
     "dune sea": MAP_NPCS["desert wastes"],
     "sunstone oasis": MAP_NPCS["desert wastes"],
+    "forge pass": MAP_NPCS["ember mountain"],
     "ashen foothills": MAP_NPCS["ember mountain"],
     "cinder fields": MAP_NPCS["ember mountain"],
+    "storm gap": MAP_NPCS["high cliffs"],
     "windward ledge": MAP_NPCS["high cliffs"],
     "falcon perch": MAP_NPCS["high cliffs"],
+    "training yard": MAP_NPCS["stadium"],
+    "east bleachers": MAP_NPCS["stadium"],
 })
 MAP_MONSTERS.update({
+    "old road": ("Headless Horseman", "Skeleton", "Thornwolf"),
     "fern meadow": ("Skeleton", "Thornwolf", "Frost Wraith"),
     "mosswood trail": ("Headless Horseman", "Skeleton", "Thornwolf"),
     "ancient grove": ("Green Dragon", "Stone Golem", "Skeleton"),
+    "glimmering pass": ("Crystal Dragon", "Frost Wraith", "Storm Roc"),
     "shard plains": ("Crystal Dragon", "Frost Wraith", "Storm Roc"),
     "prism basin": ("Red Dragon", "Stone Golem", "Phoenix"),
     "frostbreak plateau": ("Crystal Dragon", "Frost Wraith", "Storm Roc"),
+    "wharf lookout": ("Megalodon", "Sea Serpent", "Storm Roc"),
     "tidal flats": ("Megalodon", "Sea Serpent", "Scorpion Queen"),
     "salt marsh": ("Leviathan", "Sea Serpent", "Scorpion Queen"),
     "sea cliffs": ("Leviathan", "Storm Roc", "Sea Serpent"),
     "rolling grassland": ("Thornwolf", "Storm Roc", "Skeleton"),
+    "sunlit crossing": ("Thornwolf", "Storm Roc", "Headless Horseman"),
     "old stone road": ("Headless Horseman", "Stone Golem", "Red Dragon"),
+    "ruined caravan post": ("Sand Wyrm", "Scorpion Queen", "Skeleton"),
     "dune sea": ("Sand Wyrm", "Scorpion Queen", "Thornwolf"),
     "sunstone oasis": ("Sand Wyrm", "Phoenix", "Scorpion Queen"),
+    "forge pass": ("Phoenix", "Red Dragon", "Stone Golem"),
     "ashen foothills": ("Phoenix", "Red Dragon", "Stone Golem"),
     "cinder fields": ("Phoenix", "Red Dragon", "Frost Wraith"),
+    "storm gap": ("Storm Roc", "Frost Wraith", "Thornwolf"),
     "windward ledge": ("Storm Roc", "Frost Wraith", "Thornwolf"),
     "falcon perch": ("Storm Roc", "Red Dragon", "Phoenix"),
+    "training yard": ("Prime Kyle Walker", "Skeleton", "Stone Golem"),
+    "east bleachers": ("Prime Kyle Walker", "Skeleton", "Storm Roc"),
 })
 
 
