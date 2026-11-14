@@ -438,23 +438,26 @@ def visit_shop(player: VideoGame) -> None:
 
 def run_encounter(player: VideoGame, monster: methods.Monster) -> bool:
     """Handle the player's choice to fight or flee; return whether they survived."""
-    choice = methods.formatted(input(f"A {monster.name} blocks the way. Fight or flee? "))
-    if choice == "flee":
-        if methods.flee_attempt(methods.flee_probabilities, monster.name):
-            return True
-        elif fight(player, monster):
-            return True
-        else:
-            return False
-    elif choice == "fight":
+    while True:
+        choice = methods.formatted(
+            input(f"A {monster.name} blocks the way. Fight or flee? ")
+        )
+        try:
+            if choice not in ("fight", "flee"):
+                raise InvalidInputError("Enter 'fight' or 'flee'.")
+        except InvalidInputError as error:
+            print(error)
+            continue
+
+        if choice == "flee":
+            if methods.flee_attempt(methods.flee_probabilities, monster.name):
+                return True
+            return fight(player, monster)
+
         if fight(player, monster):
             visit_shop(player)
             return True
-        else:
-            return False
-    else:
-        raise InvalidInputError("Enter 'fight' or 'flee'.")
-    return False
+        return False
 
 
 def game_is_active(player: VideoGame) -> bool:
@@ -774,14 +777,22 @@ def run_menu(player: VideoGame) -> VideoGame:
         if command == "check stats":
             print(player)
         elif command == "save character":
-            methods.save_character(player, input("File name (without .txt): "))
+            try:
+                methods.save_character(player, input("File name (without .txt): "))
+            except (OSError, TypeError, ValueError) as error:
+                print(f"Could not save character: {error}")
         elif command == "load character":
             try:
                 player = load_character_instance(input("File name (with or without .txt): "))
             except (OSError, TypeError, ValueError) as error:
                 print(f"Could not load character: {error}")
         elif command == "access attribute":
-            methods.access_attribute(input("Attribute name: ").strip().lower(), player)
+            try:
+                methods.access_attribute(
+                    input("Attribute name: ").strip().lower(), player
+                )
+            except (AttributeError, ValueError) as error:
+                print(f"Could not access attribute: {error}")
         elif command == "access inventory":
             methods.access_inventory(player)
         elif command == "create new character":
