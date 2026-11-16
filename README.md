@@ -1,5 +1,9 @@
 # rpg_game
 An RPG game that is 100% based on text and uses advanced features.
+
+Run the text game with `python main.py`, or open the Tkinter screen with
+`python main.py --gui` (or `python -m gui`).
+
 Features of the game:
 Admin commands 
 1v1 battle scenarios

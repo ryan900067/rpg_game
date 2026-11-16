@@ -7,6 +7,7 @@ from tkinter import messagebox, ttk
 import main as game_engine
 
 from .screens import AdventureScreenState, StartScreen
+from .speech import SpeechNarrator
 from .terminal import open_terminal
 
 
@@ -20,6 +21,7 @@ class RPGApp:
         self.root.minsize(900, 680)
 
         self.player = game_engine.VideoGame(name="Adventurer")
+        self.narrator = SpeechNarrator()
         self.route = game_engine.create_adventure_stages(1)
         self.route_index = 0
         self.location = self.route[0][1]
@@ -31,6 +33,7 @@ class RPGApp:
 
         self.container = ttk.Frame(root, padding=16, style="Game.TFrame")
         self.container.pack(fill="both", expand=True)
+        self.root.protocol("WM_DELETE_WINDOW", self.close)
         self.show_start_screen()
 
     def show_start_screen(self) -> None:
@@ -57,6 +60,7 @@ class RPGApp:
             state,
             self.explore,
             self.open_terminal,
+            self.narrate,
         ).pack(fill="both", expand=True)
 
     def explore(self) -> None:
@@ -96,6 +100,21 @@ class RPGApp:
                 str(error),
                 parent=self.root,
             )
+
+    def narrate(self) -> None:
+        """Read the current field report aloud when requested."""
+        try:
+            self.narrator.speak(self.story)
+        except (OSError, ValueError) as error:
+            messagebox.showerror(
+                "Narration unavailable",
+                str(error),
+                parent=self.root,
+            )
+
+    def close(self) -> None:
+        self.narrator.stop()
+        self.root.destroy()
 
 
 def main() -> None:

@@ -5,11 +5,11 @@ from tkinter import ttk
 from typing import Protocol
 
 
-BACKGROUND = "#111a25"
-CARD = "#192431"
-TEXT = "#e8edf2"
-MUTED = "#9fb0bf"
-GOLD = "#f3d37a"
+BACKGROUND = "#0d1520"
+CARD = "#172434"
+TEXT = "#edf2f7"
+MUTED = "#b0bdc9"
+GOLD = "#f4cb70"
 
 
 class PlayerView(Protocol):
@@ -40,22 +40,34 @@ def configure_styles() -> None:
     style.configure("Game.TLabel", background=BACKGROUND, foreground=TEXT)
     style.configure("Card.TLabel", background=CARD, foreground=TEXT)
     style.configure(
+        "HeaderMuted.TLabel",
+        background=BACKGROUND,
+        foreground=MUTED,
+        font=("TkDefaultFont", 10),
+    )
+    style.configure(
+        "HeaderGold.TLabel",
+        background=BACKGROUND,
+        foreground=GOLD,
+        font=("TkDefaultFont", 10, "bold"),
+    )
+    style.configure(
         "Muted.TLabel",
         background=CARD,
         foreground=MUTED,
-        font=("TkDefaultFont", 9),
+        font=("TkDefaultFont", 10),
     )
     style.configure(
         "Gold.TLabel",
         background=CARD,
         foreground=GOLD,
-        font=("TkDefaultFont", 10, "bold"),
+        font=("TkDefaultFont", 11, "bold"),
     )
     style.configure(
         "Title.TLabel",
         background=CARD,
         foreground=TEXT,
-        font=("TkDefaultFont", 15, "bold"),
+        font=("TkDefaultFont", 17, "bold"),
     )
     style.configure(
         "Card.TLabelframe",
@@ -63,6 +75,7 @@ def configure_styles() -> None:
         bordercolor="#334353",
         relief="solid",
     )
+    style.configure("Card.TSeparator", background="#344556")
     style.configure(
         "Card.TLabelframe.Label",
         background=CARD,
@@ -157,8 +170,24 @@ class AdventureMap(tk.Canvas):
             "WWWWWWWWWWWW",
         ),
     }
+    player_routes = {
+        "Verdant Forest": (
+            (2, 1), (3, 1), (3, 2), (4, 2),
+            (4, 3), (5, 3), (5, 4), (6, 4),
+        ),
+        "Open Road": (
+            (3, 1), (4, 1), (5, 1), (5, 2),
+            (5, 3), (5, 4), (4, 5), (5, 5),
+        ),
+        "Coastal Reach": (
+            (3, 2), (4, 2), (5, 2), (6, 2),
+            (6, 3), (6, 4), (7, 4), (8, 5),
+        ),
+    }
 
-    def __init__(self, parent: tk.Widget, biome: str) -> None:
+    def __init__(
+        self, parent: tk.Widget, biome: str, locations_explored: int
+    ) -> None:
         super().__init__(
             parent,
             height=390,
@@ -166,6 +195,10 @@ class AdventureMap(tk.Canvas):
             highlightthickness=0,
         )
         self.tiles = self.biome_tiles.get(biome, self.biome_tiles["Verdant Forest"])
+        self.player_route = self.player_routes.get(
+            biome, self.player_routes["Verdant Forest"]
+        )
+        self.player_route_index = min(locations_explored, len(self.player_route) - 1)
         self.bind("<Configure>", self._draw_map)
 
     def _draw_map(self, _event: tk.Event) -> None:
@@ -205,7 +238,10 @@ class AdventureMap(tk.Canvas):
                     self._draw_mountain(x1, y1, tile_size)
 
         self._draw_bridge(left, top, tile_size)
-        self._draw_marker(left, top, tile_size, 4, 3, "player")
+        player_column, player_row = self.player_route[self.player_route_index]
+        self._draw_marker(
+            left, top, tile_size, player_column, player_row, "player"
+        )
         self._draw_marker(left, top, tile_size, 9, 4, "scout")
         self._draw_marker(left, top, tile_size, 7, 2, "guide")
         self._draw_marker(left, top, tile_size, 10, 6, "chest")
@@ -436,8 +472,57 @@ class AdventureMap(tk.Canvas):
                 text=label,
                 fill="#d1dce5",
                 anchor="w",
-                font=("TkDefaultFont", 8),
+                font=("TkDefaultFont", 9),
             )
+
+
+class MicrophoneButton(tk.Canvas):
+    """Small keyboard-accessible microphone control for the field report."""
+
+    def __init__(self, parent: tk.Widget, command: Callable[[], None]) -> None:
+        super().__init__(
+            parent,
+            width=32,
+            height=32,
+            background=BACKGROUND,
+            highlightthickness=0,
+            cursor="hand2",
+            takefocus=True,
+        )
+        self.command = command
+        self.hovered = False
+        self.bind("<Button-1>", self._activate)
+        self.bind("<Return>", self._activate)
+        self.bind("<space>", self._activate)
+        self.bind("<Enter>", self._on_enter)
+        self.bind("<Leave>", self._on_leave)
+        self.bind("<FocusIn>", self._draw)
+        self.bind("<FocusOut>", self._draw)
+        self._draw()
+
+    def _activate(self, _event: tk.Event) -> str:
+        self.command()
+        return "break"
+
+    def _on_enter(self, _event: tk.Event) -> None:
+        self.hovered = True
+        self._draw()
+
+    def _on_leave(self, _event: tk.Event) -> None:
+        self.hovered = False
+        self._draw()
+
+    def _draw(self, _event: tk.Event | None = None) -> None:
+        self.delete("all")
+        fill = "#26384a" if self.hovered else BACKGROUND
+        outline = GOLD if self.focus_get() == self else "#526274"
+        self.create_rectangle(1, 1, 31, 31, fill=fill, outline=outline)
+        self.create_oval(12, 6, 20, 19, outline=GOLD, width=2)
+        self.create_arc(
+            9, 10, 23, 24, start=180, extent=180, style="arc", outline=GOLD, width=2
+        )
+        self.create_line(16, 24, 16, 27, fill=GOLD, width=2)
+        self.create_line(12, 27, 20, 27, fill=GOLD, width=2)
 
 
 class StartScreen(ttk.Frame):
@@ -449,12 +534,14 @@ class StartScreen(ttk.Frame):
         state: AdventureScreenState,
         on_explore: Callable[[], None],
         on_open_terminal: Callable[[], None],
+        on_narrate: Callable[[], None],
     ) -> None:
         configure_styles()
         super().__init__(parent, style="Game.TFrame")
         self.state = state
         self.on_explore = on_explore
         self.on_open_terminal = on_open_terminal
+        self.on_narrate = on_narrate
         self.columnconfigure(0, minsize=190)
         self.columnconfigure(1, weight=1, minsize=390)
         self.columnconfigure(2, minsize=190)
@@ -476,13 +563,16 @@ class StartScreen(ttk.Frame):
         ttk.Label(
             header,
             text=f"CAMPAIGN 01  |  {self.state.biome.upper()}",
-            style="Muted.TLabel",
+            style="HeaderMuted.TLabel",
         ).grid(row=0, column=1, sticky="e", padx=(8, 16))
         ttk.Label(
             header,
             text=f"COINS  {self.state.player.coins}",
-            style="Gold.TLabel",
+            style="HeaderGold.TLabel",
         ).grid(row=0, column=2, sticky="e")
+        MicrophoneButton(header, self.on_narrate).grid(
+            row=0, column=3, sticky="e", padx=(12, 0)
+        )
 
     def _build_character_panel(self) -> None:
         player = ttk.LabelFrame(
@@ -617,7 +707,11 @@ class StartScreen(ttk.Frame):
             ),
             style="Muted.TLabel",
         ).grid(row=1, column=0, sticky="w", pady=(2, 0))
-        AdventureMap(world, self.state.biome).grid(
+        AdventureMap(
+            world,
+            self.state.biome,
+            self.state.locations_explored,
+        ).grid(
             row=1, column=0, sticky="nsew"
         )
 
@@ -647,7 +741,9 @@ class StartScreen(ttk.Frame):
             style="XP.Horizontal.TProgressbar",
         ).grid(row=3, column=0, sticky="ew", pady=(8, 14))
 
-        ttk.Separator(log).grid(row=4, column=0, sticky="ew", pady=4)
+        ttk.Separator(log, style="Card.TSeparator").grid(
+            row=4, column=0, sticky="ew", pady=4
+        )
         ttk.Label(log, text="ROUTE LOCATIONS", style="Muted.TLabel").grid(
             row=5, column=0, sticky="w", pady=(8, 2)
         )
@@ -658,14 +754,18 @@ class StartScreen(ttk.Frame):
         ).grid(
             row=6, column=0, sticky="w"
         )
-        ttk.Separator(log).grid(row=7, column=0, sticky="ew", pady=10)
+        ttk.Separator(log, style="Card.TSeparator").grid(
+            row=7, column=0, sticky="ew", pady=10
+        )
         ttk.Label(log, text="CURRENT BIOME", style="Muted.TLabel").grid(
             row=8, column=0, sticky="w"
         )
         ttk.Label(
             log, text=self.state.biome, style="Gold.TLabel", wraplength=160
         ).grid(row=9, column=0, sticky="w", pady=(5, 2))
-        ttk.Separator(log).grid(row=10, column=0, sticky="ew", pady=10)
+        ttk.Separator(log, style="Card.TSeparator").grid(
+            row=10, column=0, sticky="ew", pady=10
+        )
         ttk.Label(
             log,
             text=f"Health: {self.state.player.health}  |  Coins: {self.state.player.coins}",

@@ -2,6 +2,7 @@ import ast
 from collections.abc import Callable
 from functools import wraps
 import random
+import sys
 
 import methods
 import pandas as pd
@@ -890,4 +891,9 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    if sys.argv[1:] == ["--gui"]:
+        from gui.app import main as gui_main
+
+        gui_main()
+    else:
+        main()
