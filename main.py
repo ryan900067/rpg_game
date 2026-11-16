@@ -773,7 +773,15 @@ def run_menu(player: VideoGame) -> VideoGame:
             print("Continuing your adventure...")
             break
         if command == "exit":
-            break
+            if ask_yes_no("Would you like to save your character? (y/n): "):
+                try:
+                    methods.save_character(
+                        player, input("File name (without .txt): ")
+                    )
+                except (OSError, TypeError, ValueError) as error:
+                    print(f"Could not save character: {error}")
+            print("Exiting game.")
+            raise SystemExit(0)
         if command == "check stats":
             print(player)
         elif command == "save character":
