@@ -1,4 +1,5 @@
 import ast
+from collections.abc import Callable
 from functools import wraps
 import random
 
@@ -484,7 +485,13 @@ def offer_random_chest(player: VideoGame) -> None:
     offer_chest(player, chest_name)
 
 
-def run_exploration(player: VideoGame, destination: str) -> VideoGame:
+def run_exploration(
+    player: VideoGame,
+    destination: str,
+    *,
+    confirm_fn: Callable[[str], bool] | None = None,
+    use_groq: bool = True,
+) -> VideoGame:
     """Offer a random exploration event between encounters."""
     event = methods.roll_exploration_event()
     if event is None:
@@ -494,9 +501,13 @@ def run_exploration(player: VideoGame, destination: str) -> VideoGame:
     print(f"\nOn the way to {destination.title()}...")
     scene = f"{event['scene']} on the road to {destination.title()}"
     print(methods.generate_narrative(
-        scene, tone="adventurous fantasy", player_name=player.name
+        scene,
+        tone="adventurous fantasy",
+        player_name=player.name,
+        use_groq=use_groq,
     ))
-    if not ask_yes_no(event["prompt"]):
+    confirm = ask_yes_no if confirm_fn is None else confirm_fn
+    if not confirm(event["prompt"]):
         print("You leave the discovery behind and continue onward.")
         return player
 
